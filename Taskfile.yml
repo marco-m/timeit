@@ -1,0 +1,34 @@
+# https://taskfile.dev
+
+version: '2'
+
+tasks:
+  default:
+    deps: [test]
+  clean:
+    desc: Delete build artifacts
+    cmds: [rm -f bin/*]
+  timeit:
+    desc: Build the timeit executable
+    dir: bin
+    cmds:
+      - go build -v -ldflags="-w -s -X main.version={{.GIT_COMMIT}}" ../cmd/timeit
+    vars:
+      GIT_COMMIT: &git-commit
+        sh: git describe --long --dirty --always
+  sleepit:
+    desc: Build the sleepit executable
+    dir: bin
+    cmds:
+      - go build -v -ldflags="-w -s -X main.version={{.GIT_COMMIT}}" ../cmd/sleepit
+    vars:
+      GIT_COMMIT: *git-commit
+  test:
+    desc: Run the integration tests
+    deps: [timeit, sleepit]
+    cmds:
+      - "{{.TESTRUNNER}} ./..."
+    vars:
+      GOTESTSUM:
+        sh: which gotestsum; true
+      TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}}{{else}}go test{{end}}"
