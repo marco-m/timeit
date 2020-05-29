@@ -60,8 +60,11 @@ func run(progname string, args []string, out io.Writer) int {
 		// status := cmd.ProcessState.Sys().(syscall.WaitStatus)
 		// sigNum := int(status.Signal())
 		fmt.Fprintln(out, "timeit: wait child:", waitErr)
-	} else {
-		fmt.Fprintf(out, "%v\n", time.Since(start))
 	}
+	fmt.Fprintf(out,
+		`timeit results:
+real: %v
+`,
+		time.Since(start))
 	return cmd.ProcessState.ExitCode()
 }
