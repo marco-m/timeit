@@ -9,12 +9,16 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 )
 
 func main() {
 	os.Exit(run("timeit", os.Args[1:], os.Stderr))
 }
+
+// Test escape hatch.
+var execCommand = exec.Command
 
 func run(progname string, args []string, out io.Writer) int {
 	flag.CommandLine.SetOutput(out)
@@ -37,13 +41,7 @@ func run(progname string, args []string, out io.Writer) int {
 		return 2
 	}
 
-	executable, lookupErr := exec.LookPath(flagSet.Args()[0])
-	if lookupErr != nil {
-		fmt.Fprintln(out, "timeit:", lookupErr)
-		return 127
-	}
-
-	cmd := exec.Command(executable, flagSet.Args()[1:]...)
+	cmd := execCommand(flagSet.Args()[0], flagSet.Args()[1:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -51,14 +49,11 @@ func run(progname string, args []string, out io.Writer) int {
 	start := time.Now()
 	if startErr := cmd.Start(); startErr != nil {
 		fmt.Fprintln(out, "timeit: start child:", startErr)
-		// FIXME what is the convention here?
 		return 1
 	}
 
 	waitErr := cmd.Wait()
 	if waitErr != nil {
-		// status := cmd.ProcessState.Sys().(syscall.WaitStatus)
-		// sigNum := int(status.Signal())
 		fmt.Fprintln(out, "timeit: wait child:", waitErr)
 	}
 	fmt.Fprintf(out,
@@ -66,5 +61,11 @@ func run(progname string, args []string, out io.Writer) int {
 real: %v
 `,
 		time.Since(start))
-	return cmd.ProcessState.ExitCode()
+	code := cmd.ProcessState.ExitCode()
+	if code == -1 {
+		status := cmd.ProcessState.Sys().(syscall.WaitStatus)
+		// Follow the shell convention, https://en.wikipedia.org/wiki/Exit_status
+		code = 128 + int(status.Signal())
+	}
+	return code
 }

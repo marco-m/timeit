@@ -5,8 +5,12 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -32,15 +36,15 @@ func TestRun(t *testing.T) {
 		{
 			"non existing command is an error, relative path",
 			[]string{"non-existing"},
-			127,
-			"timeit: exec: \"non-existing\": executable file not found in $PATH",
+			1,
+			"timeit: start child: exec: \"non-existing\": executable file not found in $PATH",
 			false,
 		},
 		{
 			"non existing command is an error, absolute path",
 			[]string{"/non-existing"},
-			127,
-			"timeit: exec: \"/non-existing\": stat /non-existing: no such file or directory",
+			1,
+			"timeit: start child: fork/exec /non-existing: no such file or directory",
 			false,
 		},
 		{
@@ -104,4 +108,77 @@ func parseOutput(out string) (timeitErrLine string, containsTimeitResults bool) 
 		}
 	}
 	return errLine, containsResults
+}
+
+func TestReturnCorrectExitCodeIfChildTerminatedBySignal(t *testing.T) {
+	// We use the TestHelperProcess pattern (see below) and ask the child to send a
+	// signal to itself.
+	execCommand = helperCommand
+	defer func() {
+		execCommand = exec.Command
+	}()
+
+	var gotOut bytes.Buffer
+	gotCode := run("timeit", []string{"signal"}, &gotOut)
+	wantCode := 128 + int(syscall.SIGINT)
+	if gotCode != wantCode {
+		t.Fatalf("\ncode: got: %d; want: %d\nout: %q", gotCode, wantCode, gotOut.String())
+	}
+}
+
+// The TestHelperProcess pattern, part 1.
+// See TestHelperProcess() for more info.
+func helperCommand(command string, args ...string) *exec.Cmd {
+	cs := []string{"-test.run=TestHelperProcess", "--", command}
+	cs = append(cs, args...)
+	cmd := exec.Command(os.Args[0], cs...)
+	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
+	return cmd
+}
+
+// The TestHelperProcess pattern, part 2.
+// See:
+// - helperCommand()
+// - https://golang.org/src/os/exec/exec_test.go
+// - https://npf.io/2015/06/testing-exec-command
+//
+// TestHelperProcess isn't a real test. It's used as a helper process.
+func TestHelperProcess(t *testing.T) {
+	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
+		return
+	}
+
+	// os.Args has been built by helperCommand() and is something like:
+	// [/path/to/test-executable, -test.run=TestHelperProcess, --, cmd, args]
+	// where cmd is the command and args is the list of arguments passed to
+	// exec.Command() in the SUT.
+	args := os.Args
+	for len(args) > 0 {
+		if args[0] == "--" {
+			args = args[1:]
+			break
+		}
+		args = args[1:]
+	}
+	if len(args) == 0 {
+		fmt.Fprintf(os.Stderr, "TestHelperProcess: missing command\n")
+		os.Exit(2)
+	}
+
+	cmd, args := args[0], args[1:]
+	switch cmd {
+	case "signal":
+		// We are now the child process of timeit.
+		// Send ourselves a signal and thus terminate.
+		self, _ := os.FindProcess(os.Getpid())
+		self.Signal(os.Interrupt)
+	default:
+		fmt.Fprintf(os.Stderr, "TestHelperProcess: unknown cmd: %q; args: %q\n",
+			cmd, args)
+		os.Exit(3)
+	}
+}
+
+func TestIgnoreSignals(t *testing.T) {
+
 }
