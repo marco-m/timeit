@@ -9,18 +9,19 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"syscall"
 	"time"
 )
 
 func main() {
-	os.Exit(run("timeit", os.Args[1:], os.Stderr))
+	os.Exit(run("timeit", os.Args[1:], os.Stderr, nil))
 }
 
 // Test escape hatch.
 var execCommand = exec.Command
 
-func run(progname string, args []string, out io.Writer) int {
+func run(progname string, args []string, out io.Writer, started chan<- (struct{})) int {
 	flag.CommandLine.SetOutput(out)
 	flagSet := flag.NewFlagSet(progname, flag.ContinueOnError)
 	flagSet.Usage = func() {
@@ -50,6 +51,22 @@ func run(progname string, args []string, out io.Writer) int {
 	if startErr := cmd.Start(); startErr != nil {
 		fmt.Fprintln(out, "timeit: start child:", startErr)
 		return 1
+	}
+
+	// We are in the parent, after having started the child.
+	// Ignoring SIGINT as the original /usr/bin/time does with
+	// signal.Ignore(os.Interrupt) has subtle side-effects with the tests.
+	// Thus, we do the equivalent with a do-nothing signal handler.
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt)
+	go func() {
+		<-signalCh
+	}()
+
+	if started != nil {
+		go func() {
+			started <- struct{}{}
+		}()
 	}
 
 	waitErr := cmd.Wait()

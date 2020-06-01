@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 )
 
 var (
@@ -72,7 +73,7 @@ func TestRun(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			var gotOut bytes.Buffer
-			gotCode := run("timeit", tc.args, &gotOut)
+			gotCode := run("timeit", tc.args, &gotOut, nil)
 			if gotCode != tc.wantCode {
 				t.Errorf("\ncode: got: %d; want: %d", gotCode, tc.wantCode)
 			}
@@ -119,7 +120,7 @@ func TestReturnCorrectExitCodeIfChildTerminatedBySignal(t *testing.T) {
 	}()
 
 	var gotOut bytes.Buffer
-	gotCode := run("timeit", []string{"signal"}, &gotOut)
+	gotCode := run("timeit", []string{"signal"}, &gotOut, nil)
 	wantCode := 128 + int(syscall.SIGINT)
 	if gotCode != wantCode {
 		t.Fatalf("\ncode: got: %d; want: %d\nout: %q", gotCode, wantCode, gotOut.String())
@@ -171,14 +172,41 @@ func TestHelperProcess(t *testing.T) {
 		// We are now the child process of timeit.
 		// Send ourselves a signal and thus terminate.
 		self, _ := os.FindProcess(os.Getpid())
-		self.Signal(os.Interrupt)
+		if err := self.Signal(os.Interrupt); err != nil {
+			fmt.Fprintf(os.Stderr, "TestHelperProcess: sending signal: %v\n", err)
+			os.Exit(3)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "TestHelperProcess: unknown cmd: %q; args: %q\n",
 			cmd, args)
-		os.Exit(3)
+		os.Exit(4)
 	}
 }
 
 func TestIgnoreSignals(t *testing.T) {
+	// Normally sending SIGINT to the process running the test would cause process
+	// termination and thus `go test` would report a failure. Since the SUT ignores
+	// this signal, the test should pass.
+	//
+	started := make(chan struct{})
+
+	// We use a goroutine because we want to send the signal while the SUT is running.
+	go func() {
+		select {
+		case <-started:
+			self, _ := os.FindProcess(os.Getpid())
+			if err := self.Signal(os.Interrupt); err != nil {
+				t.Errorf("sending signal: %v", err)
+			}
+		case <-time.After(time.Second):
+			t.Errorf("timer expired and child not started")
+		}
+	}()
+
+	var gotOut bytes.Buffer
+	// FIXME can I have a better synchronization than a sleep ? :-(
+	if gotCode := run("timeit", []string{SLEEPIT, "200ms"}, &gotOut, started); gotCode != 0 {
+		t.Fatalf("gotCode: %v; want: 0", gotCode)
+	}
 
 }
