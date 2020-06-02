@@ -14,6 +14,11 @@ import (
 	"time"
 )
 
+var (
+	// Filled by the linker.
+	version = "unknown"
+)
+
 func main() {
 	os.Exit(run("timeit", os.Args[1:], os.Stderr, nil))
 }
@@ -32,10 +37,14 @@ func run(progname string, args []string, out io.Writer, started chan<- (struct{}
 	}
 
 	var (
-	// decimalFmt = flagSet.Bool("d", false, "decimal format")
+		showVersion = flagSet.Bool("version", false, "show version")
 	)
 	if flagSet.Parse(args) != nil {
 		return 2
+	}
+	if *showVersion {
+		fmt.Fprintln(out, "timeit version", version)
+		return 0
 	}
 	if len(flagSet.Args()) == 0 {
 		fmt.Fprintln(out, "timeit: expected a command to time")

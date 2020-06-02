@@ -206,7 +206,17 @@ func TestIgnoreSignals(t *testing.T) {
 	var gotOut bytes.Buffer
 	// FIXME can I have a better synchronization than a sleep ? :-(
 	if gotCode := run("timeit", []string{SLEEPIT, "200ms"}, &gotOut, started); gotCode != 0 {
-		t.Fatalf("gotCode: %v; want: 0", gotCode)
+		t.Fatalf("\ngotCode: %v; want: 0", gotCode)
 	}
+}
 
+func TestShowVersion(t *testing.T) {
+	var gotOut bytes.Buffer
+	if gotCode := run("timeit", []string{"-version"}, &gotOut, nil); gotCode != 0 {
+		t.Errorf("\ngotCode: %v; want: 0", gotCode)
+	}
+	wantPrefix := "timeit version "
+	if !strings.HasPrefix(gotOut.String(), wantPrefix) {
+		t.Errorf("\ngotOut: %s;wantPrefix: %s", gotOut.String(), wantPrefix)
+	}
 }
