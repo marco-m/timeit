@@ -8,29 +8,58 @@ It has some features inspired by the FreeBSD `/usr/bin/time`:
 
 ## Examples
 
+Timing a command, with or without options:
+
     $ timeit sleep 61
     timeit results:
     real: 1m1.007506918s
 
+Timing a shell construct: you have to time the execution of a subshell, for
+example:
+
+    $ timeit fish -c 'for i in (seq 3); sleep 1; echo $i; end'
+    1
+    2
+    3
+    timeit results:
+    real: 3.035378818s
+
 # Status
 
-Version 0. Working and tested, but expect breaking changes.
+Before 1.0.0. Working and tested, backwards incompatible changes possible.
 
 ## Supported platforms
 
 Unix-like and macOS.
 
+## Installation
+
+1. Download the archive for your platform from the [releases
+  page](https://github.com/marco-m/timeit/releases).
+2. Unarchive and copy the `timeit` executable somewhere in your `$PATH`. I like
+   to use `$HOME/bin/`.
+
+### Installation for macOS
+
+You have to cope with the macOS gatekeeper, that will put the executable in
+quarantine, since it is not signed nor notarized. There are two options:
+
+1. Download the archive with a command-line tool, like curl or wget.
+2. Download the archive with a web browser, unarchive and run
+   ```
+   $ xattr -d com.apple.quarantine timeit
+   ```
+
 ## Build and install
 
-* Option 1.
-  1. Install [task](https://taskfile.dev/).
-  2. `$ task`
+1. Install [task](https://taskfile.dev/).
+2. `$ task`
 
-* Option 2.
-  1. `$ go build ./cmd/timeit`
-  2. `$ go test ./...`
+Then, copy the executable to a directory in your `$PATH`.
 
-Then, copy the executable to a directory in your `$PATH`, for example `~/bin`.
+## Making a release
+
+    $ env RELEASE_TAG=v0.1.0 summon task release
 
 ## License
 
