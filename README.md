@@ -24,6 +24,14 @@ example:
     timeit results:
     real: 3.035378818s
 
+Time a command and print intermediate timings:
+
+    $ timeit -ticker 30s sleep 60
+    timeit ticker: running since 30.00119935s
+    timeit ticker: running since 1m0.00466081s
+    timeit results:
+    real: 1m0.005122556s
+
 # Status
 
 Before 1.0.0. Working and tested, backwards incompatible changes possible.

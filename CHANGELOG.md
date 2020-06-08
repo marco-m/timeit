@@ -15,12 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### New
 
-## Unreleased [v0.3.0] - [2020-06-XX]
+## [v0.3.0] - [2020-06-08]
 
 ### New
 
 - Add flag `-check-version`: check online if there is a more recent release
   available, courtesy of [taschino](https://github.com/marco-m/taschino).
+- Add flag `-ticker <duration>`: print a status line each <duration>.
 
 ## [v0.2.0] - [2020-06-05]
 

@@ -40,8 +40,9 @@ func run(progname string, args []string, out io.Writer, started chan<- (struct{}
 	}
 
 	var (
-		showVersion  = flagSet.Bool("version", false, "show version")
-		checkVersion = flagSet.Bool("check-version", false, "check online if new version is available")
+		showVersion    = flagSet.Bool("version", false, "show version")
+		checkVersion   = flagSet.Bool("check-version", false, "check online if new version is available")
+		tickerDuration = flagSet.Duration("ticker", 0, "print a status line each <duration>")
 	)
 
 	if flagSet.Parse(args) != nil {
@@ -107,6 +108,17 @@ func run(progname string, args []string, out io.Writer, started chan<- (struct{}
 	if started != nil {
 		go func() {
 			started <- struct{}{}
+		}()
+	}
+
+	if *tickerDuration != 0 {
+		ticker := time.NewTicker(*tickerDuration)
+		defer ticker.Stop()
+
+		go func() {
+			for range ticker.C {
+				fmt.Fprintf(out, "timeit ticker: running since %s\n", time.Since(start))
+			}
 		}()
 	}
 
