@@ -12,17 +12,19 @@ tasks:
     desc: Build the timeit executable
     dir: bin
     cmds:
-      - go build -v -ldflags="-w -s -X main.version={{.GIT_COMMIT}}" ../cmd/timeit
-    vars:
-      GIT_COMMIT: &git-commit
+      - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/timeit
+    vars: &build-vars
+      FULL_VERSION:
         sh: git describe --long --dirty --always
+      SHORT_VERSION:
+        sh: git describe --abbrev=0
+      LDFLAGS: -w -s -X main.fullVersion={{.FULL_VERSION}} -X main.shortVersion={{.SHORT_VERSION}}
   sleepit:
     desc: Build the sleepit executable
     dir: bin
     cmds:
-      - go build -v -ldflags="-w -s -X main.version={{.GIT_COMMIT}}" ../cmd/sleepit
-    vars:
-      GIT_COMMIT: *git-commit
+      - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/sleepit
+    vars: *build-vars
   test:
     desc: Run the integration tests
     deps: [timeit, sleepit]
@@ -33,7 +35,9 @@ tasks:
         sh: which gotestsum; true
       TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}}{{else}}go test{{end}}"
 
+  #
   # usage: env RELEASE_TAG=v0.1.0 summon task release
+  #
   release:
     desc: Build a release and upload to GitHub as draft. You need to transition
       from draft to published in the web UI.
@@ -61,7 +65,8 @@ tasks:
         github-release release
         --tag {{.RELEASE_TAG}}
         --draft
-        --description "See the [CHANGELOG](https://github.com/$GITHUB_USER/$GITHUB_REPO/blob/{{.RELEASE_TAG}}/CHANGELOG.md)"
+        --description
+        "See the [CHANGELOG](https://github.com/$GITHUB_USER/$GITHUB_REPO/blob/{{.RELEASE_TAG}}/CHANGELOG.md)"
       # Upload the artifacts.
       - >
         github-release upload
@@ -89,14 +94,13 @@ tasks:
   release-linux:
     dir: bin/linux
     cmds: &release-cmds
-      - go build -v -ldflags="-w -s -X main.version={{.GIT_COMMIT}}" ../../cmd/timeit
+      - go build -v -ldflags="{{.LDFLAGS}}" ../../cmd/timeit
       - zip timeit-$GOOS-$GOARCH.zip timeit
     env:
       CGO_ENABLED: 0
       GOOS: linux
       GOARCH: amd64
-    vars:
-      GIT_COMMIT: *git-commit
+    vars: *build-vars
   release-darwin:
     dir: bin/darwin
     cmds: *release-cmds
@@ -104,5 +108,4 @@ tasks:
       CGO_ENABLED: 0
       GOOS: darwin
       GOARCH: amd64
-    vars:
-      GIT_COMMIT: *git-commit
+    vars: *build-vars
