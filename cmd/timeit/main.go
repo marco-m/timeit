@@ -12,11 +12,14 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/marco-m/taschino/pkg/release"
 )
 
 var (
 	// Filled by the linker.
-	version = "unknown"
+	fullVersion  = "unknown" // example: v0.0.9-8-g941583d027-dirty
+	shortVersion = "unknown" // example: v0.0.9
 )
 
 func main() {
@@ -37,15 +40,44 @@ func run(progname string, args []string, out io.Writer, started chan<- (struct{}
 	}
 
 	var (
-		showVersion = flagSet.Bool("version", false, "show version")
+		showVersion  = flagSet.Bool("version", false, "show version")
+		checkVersion = flagSet.Bool("check-version", false, "check online if new version is available")
 	)
+
 	if flagSet.Parse(args) != nil {
 		return 2
 	}
 	if *showVersion {
-		fmt.Fprintln(out, "timeit version", version)
+		fmt.Fprintln(out, "timeit version", fullVersion)
 		return 0
 	}
+	if *checkVersion {
+		human_url := fmt.Sprintf("https://github.com/%s/%s", "marco-m", "timeit")
+		latestVersion, err := release.GitHubLatest("marco-m", "timeit")
+		if err != nil {
+			fmt.Fprintln(out, err)
+			return 1
+		}
+		result, err := release.Compare(shortVersion, latestVersion)
+		if err != nil {
+			fmt.Fprintln(out, err)
+			return 1
+		}
+		switch result {
+		case 0:
+			fmt.Fprintf(out, "installed version %s is the same as the latest version %s\n",
+				shortVersion, latestVersion)
+		case -1:
+			fmt.Fprintf(out, "installed version %s is older than the latest version %s\n",
+				shortVersion, latestVersion)
+			fmt.Fprintln(out, "To upgrade visit", human_url)
+		case +1:
+			fmt.Fprintf(out, "(unexpected?) installed version %s is newer than the latest version %s\n",
+				shortVersion, latestVersion)
+		}
+		return 0
+	}
+
 	if len(flagSet.Args()) == 0 {
 		fmt.Fprintln(out, "timeit: expected a command to time")
 		return 2

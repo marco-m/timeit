@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### New
 
+## Unreleased [v0.3.0] - [2020-06-XX]
+
+### New
+
+- Add flag `-check-version`: check online if there is a more recent release
+  available, courtesy of [taschino](https://github.com/marco-m/taschino).
+
 ## [v0.2.0] - [2020-06-05]
 
 ### New
@@ -40,3 +47,4 @@ First release.
 
 [v0.1.0]: https://github.com/marco-m/timeit/releases/tag/v0.1.0
 [v0.2.0]: https://github.com/marco-m/timeit/releases/tag/v0.2.0
+[v0.3.0]: https://github.com/marco-m/timeit/releases/tag/v0.3.0
