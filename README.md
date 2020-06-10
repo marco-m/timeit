@@ -8,13 +8,13 @@ It has some features inspired by the FreeBSD `/usr/bin/time`:
 
 ## Examples
 
-Timing a command, with or without options:
+Time a command, with or without options:
 
     $ timeit sleep 61
     timeit results:
     real: 1m1.007506918s
 
-Timing a shell construct: you have to time the execution of a subshell, for
+Time a shell construct: you have to time the execution of a subshell, for
 example:
 
     $ timeit fish -c 'for i in (seq 3); sleep 1; echo $i; end'
@@ -32,22 +32,28 @@ Time a command and print intermediate timings:
     timeit results:
     real: 1m0.005122556s
 
+Check online if there is a more recent version:
+
+    $ timeit -check-version
+    installed version v0.2.1 is older than the latest version v0.3.0
+    To upgrade visit https://github.com/marco-m/timeit
+
 # Status
 
-Before 1.0.0. Working and tested, backwards incompatible changes possible.
+Pre 1.0.0. Working and tested, backwards incompatible changes possible.
 
 ## Supported platforms
 
 Unix-like and macOS.
 
-## Installation
+## Install from binary package
 
 1. Download the archive for your platform from the [releases
   page](https://github.com/marco-m/timeit/releases).
 2. Unarchive and copy the `timeit` executable somewhere in your `$PATH`. I like
    to use `$HOME/bin/`.
 
-### Installation for macOS
+### Install for macOS
 
 You have to cope with the macOS gatekeeper, that will put the executable in
 quarantine, since it is not signed nor notarized. There are two options:
@@ -58,7 +64,7 @@ quarantine, since it is not signed nor notarized. There are two options:
    $ xattr -d com.apple.quarantine timeit
    ```
 
-## Build and install
+## Install from source
 
 1. Install [task](https://taskfile.dev/).
 2. `$ task`
