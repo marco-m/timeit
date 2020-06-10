@@ -22,14 +22,25 @@ var (
 	shortVersion = "unknown" // example: v0.0.9
 )
 
-func main() {
-	os.Exit(run("timeit", os.Args[1:], os.Stderr, nil))
-}
-
 // Test escape hatch.
 var execCommand = exec.Command
 
-func run(progname string, args []string, out io.Writer, started chan<- (struct{})) int {
+func main() {
+	os.Exit(realMain("timeit", os.Args[1:], os.Stderr, nil))
+}
+
+type Cfg struct {
+	showVersion    bool
+	checkVersion   bool
+	tickerDuration time.Duration
+}
+
+// Run the command specified in `args` and wait for it to terminate. If channel `started`
+// is not nil, send a message on it when the command has successfully started. Write our
+// output to `out`, while the command output goes to stdout and stderr as usual. Use
+// `progname` in the command-line parsing help messages. Return the exit code to pass to
+// os.Exit().
+func realMain(progname string, args []string, out io.Writer, started chan<- (struct{})) int {
 	flag.CommandLine.SetOutput(out)
 	flagSet := flag.NewFlagSet(progname, flag.ContinueOnError)
 	flagSet.Usage = func() {
@@ -39,20 +50,21 @@ func run(progname string, args []string, out io.Writer, started chan<- (struct{}
 		flagSet.PrintDefaults()
 	}
 
-	var (
-		showVersion    = flagSet.Bool("version", false, "show version")
-		checkVersion   = flagSet.Bool("check-version", false, "check online if new version is available")
-		tickerDuration = flagSet.Duration("ticker", 0, "print a status line each <duration>")
-	)
+	var cfg Cfg
+	flagSet.BoolVar(&cfg.showVersion, "version", false, "show version")
+	flagSet.BoolVar(&cfg.checkVersion, "check-version", false,
+		"check online if new version is available")
+	flagSet.DurationVar(&cfg.tickerDuration, "ticker", 0,
+		"print a status line each <duration>")
 
 	if flagSet.Parse(args) != nil {
 		return 2
 	}
-	if *showVersion {
+	if cfg.showVersion {
 		fmt.Fprintln(out, "timeit version", fullVersion)
 		return 0
 	}
-	if *checkVersion {
+	if cfg.checkVersion {
 		human_url := fmt.Sprintf("https://github.com/%s/%s", "marco-m", "timeit")
 		latestVersion, err := release.GitHubLatest("marco-m", "timeit")
 		if err != nil {
@@ -84,7 +96,11 @@ func run(progname string, args []string, out io.Writer, started chan<- (struct{}
 		return 2
 	}
 
-	cmd := execCommand(flagSet.Args()[0], flagSet.Args()[1:]...)
+	return run(flagSet.Args()[0], flagSet.Args()[1:], cfg, out, started)
+}
+
+func run(progname string, args []string, cfg Cfg, out io.Writer, started chan<- (struct{})) int {
+	cmd := execCommand(progname, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -111,13 +127,13 @@ func run(progname string, args []string, out io.Writer, started chan<- (struct{}
 		}()
 	}
 
-	if *tickerDuration != 0 {
-		ticker := time.NewTicker(*tickerDuration)
+	if cfg.tickerDuration != 0 {
+		ticker := time.NewTicker(cfg.tickerDuration)
 		defer ticker.Stop()
 
 		go func() {
 			for range ticker.C {
-				fmt.Fprintf(out, "timeit ticker: running since %s\n", time.Since(start))
+				fmt.Fprintf(out, "timeit ticker: running for %s\n", time.Since(start))
 			}
 		}()
 	}
@@ -138,4 +154,5 @@ real: %v
 		code = 128 + int(status.Signal())
 	}
 	return code
+
 }

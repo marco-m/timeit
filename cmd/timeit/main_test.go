@@ -73,7 +73,7 @@ func TestRun(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			var gotOut bytes.Buffer
-			gotCode := run("timeit", tc.args, &gotOut, nil)
+			gotCode := realMain("timeit", tc.args, &gotOut, nil)
 			if gotCode != tc.wantCode {
 				t.Errorf("\ncode: got: %d; want: %d", gotCode, tc.wantCode)
 			}
@@ -120,7 +120,7 @@ func TestReturnCorrectExitCodeIfChildTerminatedBySignal(t *testing.T) {
 	}()
 
 	var gotOut bytes.Buffer
-	gotCode := run("timeit", []string{"signal"}, &gotOut, nil)
+	gotCode := realMain("timeit", []string{"signal"}, &gotOut, nil)
 	wantCode := 128 + int(syscall.SIGINT)
 	if gotCode != wantCode {
 		t.Fatalf("\ncode: got: %d; want: %d\nout: %q", gotCode, wantCode, gotOut.String())
@@ -205,14 +205,14 @@ func TestIgnoreSignals(t *testing.T) {
 
 	var gotOut bytes.Buffer
 	// FIXME can I have a better synchronization than a sleep ? :-(
-	if gotCode := run("timeit", []string{SLEEPIT, "200ms"}, &gotOut, started); gotCode != 0 {
+	if gotCode := realMain("timeit", []string{SLEEPIT, "200ms"}, &gotOut, started); gotCode != 0 {
 		t.Fatalf("\ngotCode: %v; want: 0", gotCode)
 	}
 }
 
 func TestShowVersion(t *testing.T) {
 	var gotOut bytes.Buffer
-	if gotCode := run("timeit", []string{"-version"}, &gotOut, nil); gotCode != 0 {
+	if gotCode := realMain("timeit", []string{"-version"}, &gotOut, nil); gotCode != 0 {
 		t.Errorf("\ngotCode: %v; want: 0", gotCode)
 	}
 	wantPrefix := "timeit version "
