@@ -65,7 +65,7 @@ func realMain(progname string, args []string, out io.Writer, started chan<- (str
 		return 0
 	}
 	if cfg.checkVersion {
-		human_url := fmt.Sprintf("https://github.com/%s/%s", "marco-m", "timeit")
+		humanURL := fmt.Sprintf("https://github.com/%s/%s", "marco-m", "timeit")
 		latestVersion, err := release.GitHubLatest("marco-m", "timeit")
 		if err != nil {
 			fmt.Fprintln(out, err)
@@ -83,7 +83,7 @@ func realMain(progname string, args []string, out io.Writer, started chan<- (str
 		case -1:
 			fmt.Fprintf(out, "installed version %s is older than the latest version %s\n",
 				shortVersion, latestVersion)
-			fmt.Fprintln(out, "To upgrade visit", human_url)
+			fmt.Fprintln(out, "To upgrade visit", humanURL)
 		case +1:
 			fmt.Fprintf(out, "(unexpected?) installed version %s is newer than the latest version %s\n",
 				shortVersion, latestVersion)
@@ -133,7 +133,7 @@ func run(progname string, args []string, cfg Cfg, out io.Writer, started chan<- 
 
 		go func() {
 			for range ticker.C {
-				fmt.Fprintf(out, "timeit ticker: running for %s\n", time.Since(start))
+				fmt.Fprintf(out, "\ntimeit ticker: running for %s\n", time.Since(start))
 			}
 		}()
 	}
@@ -142,8 +142,8 @@ func run(progname string, args []string, cfg Cfg, out io.Writer, started chan<- 
 	if waitErr != nil {
 		fmt.Fprintln(out, "timeit: wait child:", waitErr)
 	}
-	fmt.Fprintf(out,
-		`timeit results:
+	fmt.Fprintf(out, `
+timeit results:
 real: %v
 `,
 		time.Since(start))
@@ -154,5 +154,4 @@ real: %v
 		code = 128 + int(status.Signal())
 	}
 	return code
-
 }

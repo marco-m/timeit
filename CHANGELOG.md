@@ -15,6 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### New
 
+## [v0.4.0] - [2020-09-15]
+
+### Fixed
+
+### Changed, breaking
+
+### Changed
+
+- Print newline at the beginning of each ticker [GH-2](https://github.com/marco-m/timeit/issues/2).
+- Use Go 1.15.
+- Update Taskfile to task v3.
+
+### New
+
 ## [v0.3.0] - [2020-06-08]
 
 ### New
