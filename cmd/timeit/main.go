@@ -133,7 +133,8 @@ func run(progname string, args []string, cfg Cfg, out io.Writer, started chan<- 
 
 		go func() {
 			for range ticker.C {
-				fmt.Fprintf(out, "\ntimeit ticker: running for %s\n", time.Since(start))
+				fmt.Fprintf(out, "\ntimeit ticker: running for %s\n",
+					time.Since(start).Round(time.Millisecond))
 			}
 		}()
 	}
@@ -146,7 +147,7 @@ func run(progname string, args []string, cfg Cfg, out io.Writer, started chan<- 
 timeit results:
 real: %v
 `,
-		time.Since(start))
+		time.Since(start).Round(time.Millisecond))
 	code := cmd.ProcessState.ExitCode()
 	if code == -1 {
 		status := cmd.ProcessState.Sys().(syscall.WaitStatus)

@@ -15,19 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### New
 
+## [v0.5.0] - [2020-09-16]
+
+### Changed
+
+- Round elapsed time to milliseconds [GH-4](https://github.com/marco-m/timeit/issues/4)
+
 ## [v0.4.0] - [2020-09-15]
-
-### Fixed
-
-### Changed, breaking
 
 ### Changed
 
 - Print newline at the beginning of each ticker [GH-2](https://github.com/marco-m/timeit/issues/2).
 - Use Go 1.15.
 - Update Taskfile to task v3.
-
-### New
 
 ## [v0.3.0] - [2020-06-08]
 
@@ -63,3 +63,5 @@ First release.
 [v0.1.0]: https://github.com/marco-m/timeit/releases/tag/v0.1.0
 [v0.2.0]: https://github.com/marco-m/timeit/releases/tag/v0.2.0
 [v0.3.0]: https://github.com/marco-m/timeit/releases/tag/v0.3.0
+[v0.4.0]: https://github.com/marco-m/timeit/releases/tag/v0.4.0
+[v0.5.0]: https://github.com/marco-m/timeit/releases/tag/v0.5.0
