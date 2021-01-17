@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### New
 
+## [v0.6.0] - [2021-01-17]
+
+### New
+
+- Add color output, enabled by default. Use flag `-no-color` to disable. If stderr is not a TTY (eg: redirected to a file), then coloring will be disabled.
+
 ## [v0.5.0] - [2020-09-16]
 
 ### Changed
@@ -65,3 +71,4 @@ First release.
 [v0.3.0]: https://github.com/marco-m/timeit/releases/tag/v0.3.0
 [v0.4.0]: https://github.com/marco-m/timeit/releases/tag/v0.4.0
 [v0.5.0]: https://github.com/marco-m/timeit/releases/tag/v0.5.0
+[v0.6.0]: https://github.com/marco-m/timeit/releases/tag/v0.6.0

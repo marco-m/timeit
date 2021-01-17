@@ -13,7 +13,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/marco-m/taschino/pkg/release"
+	"github.com/mattn/go-isatty"
 )
 
 var (
@@ -32,6 +34,7 @@ func main() {
 type Cfg struct {
 	showVersion    bool
 	checkVersion   bool
+	noColor        bool
 	tickerDuration time.Duration
 }
 
@@ -54,6 +57,8 @@ func realMain(progname string, args []string, out io.Writer, started chan<- (str
 	flagSet.BoolVar(&cfg.showVersion, "version", false, "show version")
 	flagSet.BoolVar(&cfg.checkVersion, "check-version", false,
 		"check online if new version is available")
+	flagSet.BoolVar(&cfg.noColor, "no-color", false,
+		"disable color output")
 	flagSet.DurationVar(&cfg.tickerDuration, "ticker", 0,
 		"print a status line each <duration>")
 
@@ -96,10 +101,17 @@ func realMain(progname string, args []string, out io.Writer, started chan<- (str
 		return 2
 	}
 
+	file, ok := out.(*os.File)
+	if !ok || !isatty.IsTerminal(file.Fd()) || cfg.noColor {
+		color.NoColor = true
+	}
+
 	return run(flagSet.Args()[0], flagSet.Args()[1:], cfg, out, started)
 }
 
 func run(progname string, args []string, cfg Cfg, out io.Writer, started chan<- (struct{})) int {
+	chroma := color.New(color.FgCyan, color.Bold)
+
 	cmd := execCommand(progname, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -133,7 +145,7 @@ func run(progname string, args []string, cfg Cfg, out io.Writer, started chan<- 
 
 		go func() {
 			for range ticker.C {
-				fmt.Fprintf(out, "\ntimeit ticker: running for %s\n",
+				chroma.Fprintf(out, "\ntimeit ticker: running for %s\n",
 					time.Since(start).Round(time.Millisecond))
 			}
 		}()
@@ -141,9 +153,9 @@ func run(progname string, args []string, cfg Cfg, out io.Writer, started chan<- 
 
 	waitErr := cmd.Wait()
 	if waitErr != nil {
-		fmt.Fprintln(out, "timeit: wait child:", waitErr)
+		chroma.Fprintln(out, "timeit: wait child:", waitErr)
 	}
-	fmt.Fprintf(out, `
+	chroma.Fprintf(out, `
 timeit results:
 real: %v
 `,
