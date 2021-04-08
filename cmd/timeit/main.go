@@ -38,11 +38,11 @@ type Cfg struct {
 	tickerDuration time.Duration
 }
 
-// Run the command specified in `args` and wait for it to terminate. If channel `started`
-// is not nil, send a message on it when the command has successfully started. Write our
-// output to `out`, while the command output goes to stdout and stderr as usual. Use
-// `progname` in the command-line parsing help messages. Return the exit code to pass to
-// os.Exit().
+// Run the command specified as the first element of `args` and wait for it to terminate.
+// If channel `started`  is not nil, send a message on it when the command has
+// successfully started. Write our output to `out`, while the command output goes to
+// stdout and stderr as usual. Use  `progname` in the command-line parsing help messages.
+// Return the exit code to pass to os.Exit().
 func realMain(progname string, args []string, out io.Writer, started chan<- (struct{})) int {
 	flag.CommandLine.SetOutput(out)
 	flagSet := flag.NewFlagSet(progname, flag.ContinueOnError)
@@ -130,7 +130,10 @@ func run(progname string, args []string, cfg Cfg, out io.Writer, started chan<- 
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt)
 	go func() {
-		<-signalCh
+		for {
+			sig := <-signalCh
+			chroma.Fprintf(out, "\ntimeit: ignoring received signal: %v\n", sig)
+		}
 	}()
 
 	if started != nil {

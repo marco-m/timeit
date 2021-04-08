@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,6 +18,7 @@ import (
 
 var (
 	SLEEPIT, _ = filepath.Abs("../../bin/sleepit")
+	TIMEIT, _  = filepath.Abs("../../bin/timeit")
 )
 
 func TestRun(t *testing.T) {
@@ -50,7 +52,7 @@ func TestRun(t *testing.T) {
 		},
 		{
 			"child status 0 is forwarded",
-			[]string{SLEEPIT, "10ms"},
+			[]string{SLEEPIT, "10ms", "0s"},
 			0,
 			"",
 			true,
@@ -118,9 +120,10 @@ func TestReturnCorrectExitCodeIfChildTerminatedBySignal(t *testing.T) {
 	defer func() {
 		execCommand = exec.Command
 	}()
-
 	var gotOut bytes.Buffer
-	gotCode := realMain("timeit", []string{"signal"}, &gotOut, nil)
+	// Due to the override above "execCommand = helperCommand", realMain() will spawn
+	// and wait for the execution of the test executable.
+	gotCode := realMain("testfake", []string{"send-signal"}, &gotOut, nil)
 	wantCode := 128 + int(syscall.SIGINT)
 	if gotCode != wantCode {
 		t.Fatalf("\ncode: got: %d; want: %d\nout: %q", gotCode, wantCode, gotOut.String())
@@ -149,10 +152,14 @@ func TestHelperProcess(t *testing.T) {
 		return
 	}
 
+	// We are now the child process of the test executable, spawned by the SUT
+	// realMain() in each test of this file that does the override
+	// "execCommand = helperCommand".
+
 	// os.Args has been built by helperCommand() and is something like:
 	// [/path/to/test-executable, -test.run=TestHelperProcess, --, cmd, args]
-	// where cmd is the command and args is the list of arguments passed to
-	// exec.Command() in the SUT.
+	// where cmd is the command of this mini protocol and and args is the list
+	// of arguments passed to exec.Command() in the SUT.
 	args := os.Args
 	for len(args) > 0 {
 		if args[0] == "--" {
@@ -162,51 +169,94 @@ func TestHelperProcess(t *testing.T) {
 		args = args[1:]
 	}
 	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "TestHelperProcess: missing command\n")
-		os.Exit(2)
+		fmt.Fprintf(os.Stderr, "TestHelperProcess: missing protocol command\n")
+		os.Exit(101)
 	}
 
 	cmd, args := args[0], args[1:]
 	switch cmd {
-	case "signal":
-		// We are now the child process of timeit.
+	case "send-signal":
 		// Send ourselves a signal and thus terminate.
 		self, _ := os.FindProcess(os.Getpid())
 		if err := self.Signal(os.Interrupt); err != nil {
 			fmt.Fprintf(os.Stderr, "TestHelperProcess: sending signal: %v\n", err)
-			os.Exit(3)
+			os.Exit(102)
 		}
 	default:
 		fmt.Fprintf(os.Stderr, "TestHelperProcess: unknown cmd: %q; args: %q\n",
 			cmd, args)
-		os.Exit(4)
+		os.Exit(103)
 	}
 }
 
-func TestIgnoreSignals(t *testing.T) {
-	// Normally sending SIGINT to the process running the test would cause process
-	// termination and thus `go test` would report a failure. Since the SUT ignores
-	// this signal, the test should pass.
-	//
-	started := make(chan struct{})
+func TestSignalSentToProcessGroup(t *testing.T) {
+	var out bytes.Buffer
+	sut := execCommand(TIMEIT, SLEEPIT, "2s", "10ms")
+	sut.Stdout = &out
+	sut.Stderr = &out
 
-	// We use a goroutine because we want to send the signal while the SUT is running.
-	go func() {
-		select {
-		case <-started:
-			self, _ := os.FindProcess(os.Getpid())
-			if err := self.Signal(os.Interrupt); err != nil {
-				t.Errorf("sending signal: %v", err)
-			}
-		case <-time.After(time.Second):
-			t.Errorf("timer expired and child not started")
+	// Create a new process group, by setting the process group ID of the child to the
+	// child PID.
+	// By default, the child would inherit the process group of the parent, but we want
+	// to avoid this, to protect the parent (the test process) from the signal that this
+	// test will send. More info in the comments below for syscall.Kill().
+	sut.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pgid: 0}
+
+	if err := sut.Start(); err != nil {
+		t.Fatalf("starting the timeit process: %v", err)
+	}
+
+	// After the child is started, we want to avoid a race condition where we send it a
+	// signal before it had time to setup its own signal handlers.
+	// Sleeping is way too flaky, instead we parse the child output until we get a line
+	// that we know is printed after the signal handlers are installed...
+	ready := false
+	timeout := time.Duration(time.Second)
+	start := time.Now()
+	for time.Since(start) < timeout {
+		if strings.Contains(out.String(), "sleepit: ready") {
+			ready = true
+			break
 		}
-	}()
+		time.Sleep(10 * time.Millisecond)
+	}
+	if !ready {
+		t.Fatalf("sleepit not ready after %v", timeout)
+	}
 
-	var gotOut bytes.Buffer
-	// FIXME can I have a better synchronization than a sleep ? :-(
-	if gotCode := realMain("timeit", []string{SLEEPIT, "200ms"}, &gotOut, started); gotCode != 0 {
-		t.Fatalf("\ngotCode: %v; want: 0", gotCode)
+	// When we have a running program in a shell and type CTRL-C, the tty driver will
+	// send a SIGINT signal to all the processes in the foreground process group
+	// (see https://en.wikipedia.org/wiki/Process_group).
+	//
+	// Here we want to emulate this behavior: send SIGINT to the process group of the
+	// test executable. Although Go for some reasons doesn't wrap the killpg(2) system
+	// call, what works is using syscall.Kill(-PID, SIGINT), where the negative PID means
+	// the corresponding process group. Note that this negative PID works only as long
+	// as the caller of the kill(2) system call has a different PID, which is the case
+	// for this test.
+	if err := syscall.Kill(-sut.Process.Pid, syscall.SIGINT); err != nil {
+		t.Fatalf("sending INT signal to the process group: %v", err)
+	}
+
+	err := sut.Wait()
+
+	var wantErr *exec.ExitError
+	const wantExitStatus = 3 // sleepit returns 3 if it receives SIGINT
+	if errors.As(err, &wantErr) {
+		if wantErr.ExitCode() != wantExitStatus {
+			t.Errorf("waiting for the timeit process: got exit status %v; want %d",
+				wantErr.ExitCode(), wantExitStatus)
+			t.Errorf("exited normally (that is: not terminated by a signal): %v",
+				wantErr.Exited())
+			t.Errorf("Process state: %q", wantErr.String())
+		}
+	} else {
+		t.Errorf("waiting for the timeit process: got %v (%T); want (%T)", err, err, wantErr)
+	}
+
+	wantMsg := "sleepit: cleanup done"
+	if !strings.Contains(out.String(), wantMsg) {
+		t.Errorf("output: %q does not contain %q", out.String(), wantMsg)
 	}
 }
 
