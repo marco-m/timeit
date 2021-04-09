@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix [#1](https://github.com/marco-m/timeit/issues/1) as non reproducible. In any case, added manual test configuration in testdata/terraform.
 - Fix tests about signal handling. Code was already correct, but tests were not.
 
 ### Changed, breaking
