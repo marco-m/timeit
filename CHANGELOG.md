@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Upgrade to Go 1.16
+- Upgrade dependencies
+
 ### New
 
 - The sleepit helper now performs signal handling, to enable better tests.
