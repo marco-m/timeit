@@ -32,7 +32,7 @@ tasks:
       - "{{.TESTRUNNER}} ./..."
     vars:
       GOTESTSUM:
-        sh: which gotestsum; true
+        sh: which gotestsum || true
       TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}}{{else}}go test{{end}}"
 
   #
