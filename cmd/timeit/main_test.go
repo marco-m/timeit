@@ -6,8 +6,6 @@ package main
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -111,82 +109,6 @@ func parseOutput(out string) (timeitErrLine string, containsTimeitResults bool) 
 		}
 	}
 	return errLine, containsResults
-}
-
-func TestReturnCorrectExitCodeIfChildTerminatedBySignal(t *testing.T) {
-	// We use the TestHelperProcess pattern (see below) and ask the child to send a
-	// signal to itself.
-	execCommand = helperCommand
-	defer func() {
-		execCommand = exec.Command
-	}()
-	var gotOut bytes.Buffer
-	// Due to the override above "execCommand = helperCommand", realMain() will spawn
-	// and wait for the execution of the test executable.
-	gotCode := realMain("testfake", []string{"send-signal"}, &gotOut, nil)
-	wantCode := 128 + int(syscall.SIGINT)
-	if gotCode != wantCode {
-		t.Fatalf("\ncode: got: %d; want: %d\nout: %q", gotCode, wantCode, gotOut.String())
-	}
-}
-
-// The TestHelperProcess pattern, part 1.
-// See TestHelperProcess() for more info.
-func helperCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestHelperProcess", "--", command}
-	cs = append(cs, args...)
-	cmd := exec.Command(os.Args[0], cs...)
-	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
-	return cmd
-}
-
-// The TestHelperProcess pattern, part 2.
-// See:
-// - helperCommand()
-// - https://golang.org/src/os/exec/exec_test.go
-// - https://npf.io/2015/06/testing-exec-command
-//
-// TestHelperProcess isn't a real test. It's used as a helper process.
-func TestHelperProcess(t *testing.T) {
-	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
-		return
-	}
-
-	// We are now the child process of the test executable, spawned by the SUT
-	// realMain() in each test of this file that does the override
-	// "execCommand = helperCommand".
-
-	// os.Args has been built by helperCommand() and is something like:
-	// [/path/to/test-executable, -test.run=TestHelperProcess, --, cmd, args]
-	// where cmd is the command of this mini protocol and and args is the list
-	// of arguments passed to exec.Command() in the SUT.
-	args := os.Args
-	for len(args) > 0 {
-		if args[0] == "--" {
-			args = args[1:]
-			break
-		}
-		args = args[1:]
-	}
-	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "TestHelperProcess: missing protocol command\n")
-		os.Exit(101)
-	}
-
-	cmd, args := args[0], args[1:]
-	switch cmd {
-	case "send-signal":
-		// Send ourselves a signal and thus terminate.
-		self, _ := os.FindProcess(os.Getpid())
-		if err := self.Signal(os.Interrupt); err != nil {
-			fmt.Fprintf(os.Stderr, "TestHelperProcess: sending signal: %v\n", err)
-			os.Exit(102)
-		}
-	default:
-		fmt.Fprintf(os.Stderr, "TestHelperProcess: unknown cmd: %q; args: %q\n",
-			cmd, args)
-		os.Exit(103)
-	}
 }
 
 func TestSignalSentToProcessGroup(t *testing.T) {
