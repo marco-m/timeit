@@ -2,32 +2,35 @@
 
 version: '3'
 
+vars:
+  FULL_VERSION:
+    sh: git describe --long --dirty --always
+  SHORT_VERSION:
+    sh: git describe --abbrev=0 --always
+  LDFLAGS: -w -s -X main.fullVersion={{.FULL_VERSION}} -X main.shortVersion={{.SHORT_VERSION}}
+
 tasks:
   default:
     deps: [test]
   clean:
     desc: Delete build artifacts
     cmds: [rm -rf bin/*]
+  build:
+    desc: Build all the executables
+    deps: [timeit, sleepit]
   timeit:
     desc: Build the timeit executable
     dir: bin
     cmds:
       - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/timeit
-    vars: &build-vars
-      FULL_VERSION:
-        sh: git describe --long --dirty --always
-      SHORT_VERSION:
-        sh: git describe --abbrev=0
-      LDFLAGS: -w -s -X main.fullVersion={{.FULL_VERSION}} -X main.shortVersion={{.SHORT_VERSION}}
   sleepit:
     desc: Build the sleepit executable
     dir: bin
     cmds:
       - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/sleepit
-    vars: *build-vars
   test:
     desc: Run the integration tests
-    deps: [timeit, sleepit]
+    deps: [build]
     cmds:
       - "{{.TESTRUNNER}} ./..."
     vars:
@@ -100,7 +103,6 @@ tasks:
       CGO_ENABLED: 0
       GOOS: linux
       GOARCH: amd64
-    vars: *build-vars
   release-darwin:
     dir: bin/darwin
     cmds: *release-cmds
@@ -108,4 +110,3 @@ tasks:
       CGO_ENABLED: 0
       GOOS: darwin
       GOARCH: amd64
-    vars: *build-vars
