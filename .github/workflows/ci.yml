@@ -1,0 +1,45 @@
+# based on https://github.com/mvdan/github-actions-golang
+# on: [push, pull_request]
+
+on: [push]
+name: ci
+jobs:
+  all:
+    strategy:
+      matrix:
+        go-version: [1.16.x]
+        # macOS BigSur 11.0 is in private beta, so we use Catalina 10.15
+        #os: [ubuntu-20.04, macos-10.15, windows-2019]
+        os: [ubuntu-20.04]
+        task-version: [v3.3.0]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Install Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: Prepare env for deps
+      run: mkdir $HOME/bin
+    - name: Install task ${{ matrix.task-version }} (Linux)
+      if: ${{ runner.os == 'Linux' }}
+      run: |
+        cd ${{ runner.temp }}
+        wget --no-verbose https://github.com/go-task/task/releases/download/${{ matrix.task-version }}/task_linux_amd64.tar.gz
+        tar xzf task_linux_amd64.tar.gz
+        cp task $HOME/bin/
+        $HOME/bin/task --version
+    # TODO Install Task for Windows and macOS.
+    - name: Checkout code
+      uses: actions/checkout@v2
+      with:
+        # By default, actions/checkout will persist the GITHUB_TOKEN, so that further
+        # steps in the job can perform authenticated git commands (that is: WRITE to
+        # the repo). Following the Principle of least privilege, we disable this as long
+        # as we don't need it.
+        persist-credentials: false
+    - name: Build
+      run: $HOME/bin/task build
+    - name: Test
+      run: $HOME/bin/task test
+    - name: Smoke
+      run: ./bin/timeit -ticker=10ms ./bin/sleepit 20ms 0ms

@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### New
 
 - The sleepit helper now performs signal handling, to enable better tests.
+- Add CI: build and test with GitHub Actions, for platforms: Linux.
 
 ## [v0.6.0] - [2021-01-17]
 
