@@ -1,5 +1,7 @@
 # timeit
 
+[![CI status](https://github.com/marco-m/timeit/actions/workflows/ci.yml/badge.svg)](https://github.com/marco-m/timeit/actions)
+
 The `timeit` utility measures the time of command execution.
 
 It has some features inspired by the FreeBSD `/usr/bin/time`:
