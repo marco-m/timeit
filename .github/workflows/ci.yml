@@ -10,7 +10,7 @@ jobs:
         go-version: [1.16.x]
         # macOS BigSur 11.0 is in private beta, so we use Catalina 10.15
         #os: [ubuntu-20.04, macos-10.15, windows-2019]
-        os: [ubuntu-20.04]
+        os: [ubuntu-20.04, macos-10.15]
         task-version: [v3.3.0]
     runs-on: ${{ matrix.os }}
     steps:
@@ -28,8 +28,16 @@ jobs:
         tar xzf task_linux_amd64.tar.gz
         cp task $HOME/bin/
         $HOME/bin/task --version
-    # TODO Install Task for Windows and macOS.
+    - name: Install task ${{ matrix.task-version }} (macOS)
+      if: ${{ runner.os == 'macOS' }}
+      run: |
+        cd ${{ runner.temp }}
+        wget --no-verbose https://github.com/go-task/task/releases/download/${{ matrix.task-version }}/task_darwin_amd64.tar.gz
+        tar xzf task_darwin_amd64.tar.gz
+        cp task $HOME/bin/
+        $HOME/bin/task --version
     - name: Checkout code
+    # TODO Install Task for 'Windows'.
       uses: actions/checkout@v2
       with:
         # By default, actions/checkout will persist the GITHUB_TOKEN, so that further
