@@ -9,35 +9,20 @@ jobs:
       matrix:
         go-version: [1.16.x]
         # macOS BigSur 11.0 is in private beta, so we use Catalina 10.15
-        #os: [ubuntu-20.04, macos-10.15, windows-2019]
-        os: [ubuntu-20.04, macos-10.15]
+        os: [ubuntu-20.04, macos-10.15, windows-2019]
         task-version: [v3.3.0]
+        gotestsum-version: [v1.6.3]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Install Go ${{ matrix.go-version }}
       uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
-    - name: Prepare env for deps
-      run: mkdir $HOME/bin
-    - name: Install task ${{ matrix.task-version }} (Linux)
-      if: ${{ runner.os == 'Linux' }}
-      run: |
-        cd ${{ runner.temp }}
-        wget --no-verbose https://github.com/go-task/task/releases/download/${{ matrix.task-version }}/task_linux_amd64.tar.gz
-        tar xzf task_linux_amd64.tar.gz
-        cp task $HOME/bin/
-        $HOME/bin/task --version
-    - name: Install task ${{ matrix.task-version }} (macOS)
-      if: ${{ runner.os == 'macOS' }}
-      run: |
-        cd ${{ runner.temp }}
-        wget --no-verbose https://github.com/go-task/task/releases/download/${{ matrix.task-version }}/task_darwin_amd64.tar.gz
-        tar xzf task_darwin_amd64.tar.gz
-        cp task $HOME/bin/
-        $HOME/bin/task --version
+    - name: Install task ${{ matrix.task-version }}
+      run: go install github.com/go-task/task/v3/cmd/task@${{ matrix.task-version }}
+    - name: Install gotestsum ${{ matrix.gotestsum-version }}
+      run: go install gotest.tools/gotestsum@${{ matrix.gotestsum-version }}
     - name: Checkout code
-    # TODO Install Task for 'Windows'.
       uses: actions/checkout@v2
       with:
         # By default, actions/checkout will persist the GITHUB_TOKEN, so that further
@@ -46,8 +31,8 @@ jobs:
         # as we don't need it.
         persist-credentials: false
     - name: Build
-      run: $HOME/bin/task build
+      run: task build
     - name: Test
-      run: $HOME/bin/task test
-    - name: Smoke
-      run: ./bin/timeit -ticker=10ms ./bin/sleepit 20ms 0ms
+      run: task test
+    - name: timeit smoke
+      run: ./bin/timeit -ticker=200ms ./bin/sleepit 1s 0ms
