@@ -26,7 +26,7 @@ example:
     timeit results:
     real: 3.035s
 
-Time a command and print intermediate timings:
+Time a command and print intermediate timings (color output by default):
 
     $ timeit -ticker 30s sleep 60
     timeit ticker: running since 30.001s
@@ -40,7 +40,7 @@ Check online if there is a more recent version:
     installed version v0.2.1 is older than the latest version v0.3.0
     To upgrade visit https://github.com/marco-m/timeit
 
-# Status
+## Status
 
 Pre 1.0.0. Working and tested, backwards incompatible changes possible.
 
@@ -48,12 +48,17 @@ Pre 1.0.0. Working and tested, backwards incompatible changes possible.
 
 Unix-like and macOS.
 
+## Signal handling and exit status
+
+`timeit`, like its ancestor `/usr/bin/time`, will ignore SIGINT (CTRL-C) and will transparently let the timed command decide how to handle the signal. This allows for example the timed command to react to SIGINT by entering a clean up phase before exiting.
+
+In any case, `timeit` will exit with the same exit status of the timed command.
+
 ## Install from binary package
 
 1. Download the archive for your platform from the [releases
   page](https://github.com/marco-m/timeit/releases).
-2. Unarchive and copy the `timeit` executable somewhere in your `$PATH`. I like
-   to use `$HOME/bin/`.
+2. Unarchive and copy the `timeit` executable somewhere in your `$PATH`.
 
 ### Install for macOS
 
@@ -68,8 +73,8 @@ quarantine, since it is not signed nor notarized. There are two options:
 
 ## Install from source
 
-1. Install [task](https://taskfile.dev/).
-2. `$ task`
+1. Install [Task](https://taskfile.dev/).
+2. Run it: `task`.
 
 Then, copy the executable to a directory in your `$PATH`.
 
