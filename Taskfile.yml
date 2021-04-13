@@ -23,11 +23,15 @@ tasks:
     dir: bin
     cmds:
       - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/timeit
+    sources: [../cmd/timeit/*.go]
+    generates: [timeit]
   sleepit:
     desc: Build the sleepit executable
     dir: bin
     cmds:
       - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/sleepit
+    sources: [../cmd/sleepit/*.go]
+    generates: [sleepit]
   test:
     desc: Run the integration tests
     deps: [build]
