@@ -39,7 +39,7 @@ tasks:
       - "{{.TESTRUNNER}} ./..."
     vars:
       GOTESTSUM:
-        sh: which gotestsum || true
+        sh: if which gotestsum > /dev/null; then echo gotestsum; fi
       TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}}{{else}}go test{{end}}"
 
   #
