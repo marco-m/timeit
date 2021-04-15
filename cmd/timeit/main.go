@@ -166,6 +166,7 @@ timeit results:
 real: %v
 `,
 		time.Since(start).Round(time.Millisecond))
+
 	code := cmd.ProcessState.ExitCode()
 	if code == -1 {
 		status := cmd.ProcessState.Sys().(syscall.WaitStatus)

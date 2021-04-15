@@ -34,14 +34,14 @@ func TestRun(t *testing.T) {
 			"non existing command is an error, relative path",
 			[]string{"non-existing"},
 			1,
-			"timeit: start child: exec: \"non-existing\": executable file not found in $PATH",
+			"timeit: start child:",
 			false,
 		},
 		{
 			"non existing command is an error, absolute path",
 			[]string{"/non-existing"},
 			1,
-			"timeit: start child: fork/exec /non-existing: no such file or directory",
+			"timeit: start child:",
 			false,
 		},
 		{
@@ -69,7 +69,9 @@ func TestRun(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			var gotOut bytes.Buffer
+
 			gotCode := realMain("timeit", tc.args, &gotOut, nil)
+
 			if gotCode != tc.wantCode {
 				t.Errorf("\ncode: got: %d; want: %d", gotCode, tc.wantCode)
 			}
@@ -78,8 +80,9 @@ func TestRun(t *testing.T) {
 				t.Errorf("\nwantResults: %v; containsResults: %v\noutput: %q",
 					tc.wantResultsLine, containsResults, gotOut.String())
 			}
-			if gotErrLine != tc.wantErrLine {
-				t.Errorf("\nerrline: got: %q; want: %q", gotErrLine, tc.wantErrLine)
+			if !strings.HasPrefix(gotErrLine, tc.wantErrLine) {
+				t.Errorf("\nerrline: got: %q; does not begin with: %q",
+					gotErrLine, tc.wantErrLine)
 			}
 		})
 	}
