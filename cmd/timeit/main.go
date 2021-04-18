@@ -24,9 +24,6 @@ var (
 	shortVersion = "unknown" // example: v0.0.9
 )
 
-// Test escape hatch.
-var execCommand = exec.Command
-
 func main() {
 	os.Exit(realMain("timeit", os.Args[1:], os.Stderr, nil))
 }
@@ -109,10 +106,16 @@ func realMain(progname string, args []string, out io.Writer, started chan<- (str
 	return run(flagSet.Args()[0], flagSet.Args()[1:], cfg, out, started)
 }
 
-func run(progname string, args []string, cfg Cfg, out io.Writer, started chan<- (struct{})) int {
+func run(
+	progname string,
+	args []string,
+	cfg Cfg,
+	out io.Writer,
+	started chan<- (struct{}),
+) int {
 	chroma := color.New(color.FgCyan, color.Bold)
 
-	cmd := execCommand(progname, args...)
+	cmd := exec.Command(progname, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

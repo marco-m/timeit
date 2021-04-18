@@ -14,7 +14,7 @@ import (
 
 func TestSignalSentToProcessGroup(t *testing.T) {
 	var out bytes.Buffer
-	sut := execCommand(TIMEIT, SLEEPIT, "2s", "10ms")
+	sut := exec.Command(TIMEIT, SLEEPIT, "2s", "10ms")
 	sut.Stdout = &out
 	sut.Stderr = &out
 
