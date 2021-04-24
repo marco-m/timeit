@@ -46,7 +46,7 @@ func TestRun(t *testing.T) {
 		},
 		{
 			"child status 0 is forwarded",
-			[]string{SLEEPIT, "10ms", "0s"},
+			[]string{SLEEPIT, "handle", "-sleep=10ms", "-cleanup=0s"},
 			0,
 			"",
 			true,

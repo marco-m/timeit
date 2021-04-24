@@ -14,7 +14,7 @@ import (
 
 func TestSignalSentToProcessGroup(t *testing.T) {
 	var out bytes.Buffer
-	sut := exec.Command(TIMEIT, SLEEPIT, "2s", "10ms")
+	sut := exec.Command(TIMEIT, SLEEPIT, "handle", "-sleep=2s", "-cleanup=10ms")
 	sut.Stdout = &out
 	sut.Stderr = &out
 
@@ -37,14 +37,20 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 	timeout := time.Duration(time.Second)
 	start := time.Now()
 	for time.Since(start) < timeout {
-		if strings.Contains(out.String(), "sleepit: ready") {
+		if strings.Contains(out.String(), "sleepit: ready\n") {
 			ready = true
 			break
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 	if !ready {
-		t.Fatalf("sleepit not ready after %v", timeout)
+		t.Fatalf(
+			"sleepit not ready after %v\n"+
+				"additional information:\n"+
+				"  out:\n"+
+				"%s",
+			timeout,
+			out.String())
 	}
 
 	// When we have a running program in a shell and type CTRL-C, the tty driver will

@@ -35,4 +35,4 @@ jobs:
     - name: Test
       run: task test
     - name: timeit smoke
-      run: ./bin/timeit -ticker=200ms ./bin/sleepit 1s 0ms
+      run: ./bin/timeit -ticker=200ms ./bin/sleepit default -sleep=1s
