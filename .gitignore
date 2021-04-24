@@ -2,6 +2,7 @@ bin/
 TODO.md
 *.code-workspace
 .task/
+.vagrant/
 .terraform
 .terraform*
 terraform.tfstate*
