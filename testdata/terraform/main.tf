@@ -1,3 +1,8 @@
+# manual test:
+# run
+# ../../bin/timeit terraform apply -auto-approve
+# and hit CTRL-C
+
 terraform {
   required_version = ">= 0.14.9"
 }
