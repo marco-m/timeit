@@ -35,11 +35,11 @@ func run(args []string, out io.Writer) int {
 	}
 
 	handleCmd := flag.NewFlagSet("handle", flag.ExitOnError)
-	handleSleep := handleCmd.Duration("sleep", 5*time.Second, "sleep duration")
-	handleCleanup := handleCmd.Duration("cleanup", 5*time.Second, "cleanup duration")
+	handleSleep := handleCmd.Duration("sleep", 5*time.Second, "Sleep duration")
+	handleCleanup := handleCmd.Duration("cleanup", 5*time.Second, "Cleanup duration")
 
 	defaultCmd := flag.NewFlagSet("default", flag.ExitOnError)
-	defaultSleep := defaultCmd.Duration("sleep", 5*time.Second, "sleep duration")
+	defaultSleep := defaultCmd.Duration("sleep", 5*time.Second, "Sleep duration")
 
 	switch args[0] {
 	case "handle":
@@ -50,7 +50,7 @@ func run(args []string, out io.Writer) int {
 		}
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt) // Ctrl-C -> SIGINT
-		return doWork(out, *handleSleep, *handleCleanup, sigCh)
+		return supervisor(out, *handleSleep, *handleCleanup, sigCh)
 
 	case "default":
 		defaultCmd.Parse(args[1:])
@@ -58,7 +58,7 @@ func run(args []string, out io.Writer) int {
 			fmt.Fprintf(out, "default: unexpected arguments: %v\n", defaultCmd.Args())
 			return 2
 		}
-		return doWork(out, *defaultSleep, 0, nil)
+		return supervisor(out, *defaultSleep, 0, nil)
 
 	default:
 		fmt.Fprintln(out, usage)
@@ -66,7 +66,7 @@ func run(args []string, out io.Writer) int {
 	}
 }
 
-func doWork(
+func supervisor(
 	out io.Writer,
 	sleep time.Duration,
 	cleanup time.Duration,
@@ -76,15 +76,83 @@ func doWork(
 	fmt.Fprintf(out, "sleepit: PID=%d sleep=%v cleanup=%v\n",
 		os.Getpid(), sleep, cleanup)
 
-	select {
-	case <-time.After(sleep):
-		fmt.Fprintf(out, "sleepit: work done\n")
-		return 0
-	case sig := <-sigCh:
-		fmt.Fprintf(out, "sleepit: got signal: %v\n", sig)
-		fmt.Fprintf(out, "sleepit: cleaning up, please wait\n")
-		time.Sleep(cleanup)
-		fmt.Fprintf(out, "sleepit: cleanup done\n") // <== NOTE THIS LINE
-		return 3
+	cancelWork := make(chan struct{})
+	workerDone := worker(cancelWork, sleep)
+
+	var cleanerDone <-chan struct{}
+
+	count := 0
+	for {
+		select {
+		case sig := <-sigCh:
+			count++
+			fmt.Fprintf(out, "sleepit: got signal=%s count=%d\n", sig, count)
+			if count == 1 {
+				// since `cancelWork` is unbuffered, sending will be synchronous:
+				// we are ensured that the worker has terminated before starting cleanup.
+				// This is important in some real-life situations.
+				cancelWork <- struct{}{}
+				cleanerDone = cleaner(cleanup)
+			}
+		case <-workerDone:
+			return 0
+		case <-cleanerDone:
+			return 3
+		}
 	}
+}
+
+// Start a worker goroutine and return immediately a `workerDone` channel.
+// The goroutine will simulate some work and will terminate when one of the following
+// conditions happens:
+// 1. When `howlong` is elapsed. This case will be signaled on the `workerDone` channel.
+// 2. When something happens on channel `canceled`. Note that this simulates real-life,
+//    so cancellation is not instantaneous: if the caller wants a synchronous cancel,
+//    it should send a message; if instead it wants an asynchronous cancel, it should
+//    close the channel.
+func worker(canceled <-chan struct{}, howlong time.Duration) <-chan struct{} {
+	workerDone := make(chan struct{})
+	deadline := time.Now().Add(howlong)
+	fmt.Printf("sleepit: work started\n")
+	go func() {
+		for {
+			select {
+			case <-canceled:
+				fmt.Printf("sleepit: work canceled\n")
+				return
+			default:
+				if doSomeWork(deadline) {
+					fmt.Printf("sleepit: work done\n")
+					workerDone <- struct{}{}
+					return
+				}
+			}
+		}
+	}()
+	return workerDone
+}
+
+// Do some work and then return, so that the caller can decide wether to continue or not.
+// Return true when all work is done.
+func doSomeWork(deadline time.Time) bool {
+	if time.Now().After(deadline) {
+		return true
+	}
+	timeout := 100 * time.Millisecond
+	time.Sleep(timeout)
+	return false
+}
+
+// Start a cleaner goroutine and return immediately a `cleanerDone` channel.
+// The goroutine will simulate cleaning up for `cleanup` duration and will signal on
+// channel `cleanerDone` when it has terminated.
+func cleaner(cleanup time.Duration) <-chan struct{} {
+	cleanerDone := make(chan struct{})
+	go func() {
+		fmt.Printf("sleepit: cleanup started, please wait\n")
+		time.Sleep(cleanup)
+		fmt.Printf("sleepit: cleanup done\n") // <== NOTE THIS LINE
+		cleanerDone <- struct{}{}
+	}()
+	return cleanerDone
 }
