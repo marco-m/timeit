@@ -21,13 +21,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### New
 
-- The sleepit helper now performs optional signal handling, to enable better tests:
+- The sleepit helper now performs optional signal handling and interruptible work and cleanup phases, to enable better tests:
   ```
   sleepit: sleep for the specified duration, optionally handling signals
   Usage: sleepit <command> [<args>]
   Commands
     handle      Handle signals: on reception of SIGINT perform cleanup before exiting
     default     Use default action: on reception of SIGINT terminate abruptly
+
+  Usage of default:
+    -sleep duration
+          Sleep duration (default 5s)
+
+  Usage of handle:
+    -cleanup duration
+          Cleanup duration (default 5s)
+    -sleep duration
+          Sleep duration (default 5s)
+    -term-after N
+          Terminate immediately after N signals.
+          Default is to terminate only when the cleanup phase has completed.
   ```
 - Add CI: build and test with GitHub Actions, for platforms: Linux, macOS, Windows.
 - Add basic and experimental support for Windows. Untested: signal handling.
