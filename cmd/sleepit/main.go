@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"time"
@@ -24,13 +23,12 @@ Commands
 `
 
 func main() {
-	os.Exit(run(os.Args[1:], os.Stderr))
+	os.Exit(run(os.Args[1:]))
 }
 
-func run(args []string, out io.Writer) int {
-	flag.CommandLine.SetOutput(out)
+func run(args []string) int {
 	if len(args) < 1 {
-		fmt.Fprintln(out, usage)
+		fmt.Fprintln(os.Stderr, usage)
 		return 2
 	}
 
@@ -49,40 +47,39 @@ func run(args []string, out io.Writer) int {
 	case "handle":
 		handleCmd.Parse(args[1:])
 		if *handleTermAfter == 1 {
-			fmt.Fprintf(out, "handle: term-after cannot be 1\n")
+			fmt.Fprintf(os.Stderr, "handle: term-after cannot be 1\n")
 			return 2
 		}
 		if len(handleCmd.Args()) > 0 {
-			fmt.Fprintf(out, "handle: unexpected arguments: %v\n", handleCmd.Args())
+			fmt.Fprintf(os.Stderr, "handle: unexpected arguments: %v\n", handleCmd.Args())
 			return 2
 		}
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, os.Interrupt) // Ctrl-C -> SIGINT
-		return supervisor(out, *handleSleep, *handleCleanup, *handleTermAfter, sigCh)
+		return supervisor(*handleSleep, *handleCleanup, *handleTermAfter, sigCh)
 
 	case "default":
 		defaultCmd.Parse(args[1:])
 		if len(defaultCmd.Args()) > 0 {
-			fmt.Fprintf(out, "default: unexpected arguments: %v\n", defaultCmd.Args())
+			fmt.Fprintf(os.Stderr, "default: unexpected arguments: %v\n", defaultCmd.Args())
 			return 2
 		}
-		return supervisor(out, *defaultSleep, 0, 0, nil)
+		return supervisor(*defaultSleep, 0, 0, nil)
 
 	default:
-		fmt.Fprintln(out, usage)
+		fmt.Fprintln(os.Stderr, usage)
 		return 2
 	}
 }
 
 func supervisor(
-	out io.Writer,
 	sleep time.Duration,
 	cleanup time.Duration,
 	termAfter int,
 	sigCh <-chan os.Signal,
 ) int {
-	fmt.Fprintf(out, "sleepit: ready\n")
-	fmt.Fprintf(out, "sleepit: PID=%d sleep=%v cleanup=%v\n",
+	fmt.Printf("sleepit: ready\n")
+	fmt.Printf("sleepit: PID=%d sleep=%v cleanup=%v\n",
 		os.Getpid(), sleep, cleanup)
 
 	cancelWork := make(chan struct{})
@@ -96,7 +93,7 @@ func supervisor(
 		select {
 		case sig := <-sigCh:
 			sigCount++
-			fmt.Fprintf(out, "sleepit: got signal=%s count=%d\n", sig, sigCount)
+			fmt.Printf("sleepit: got signal=%s count=%d\n", sig, sigCount)
 			if sigCount == 1 {
 				// since `cancelWork` is unbuffered, sending will be synchronous:
 				// we are ensured that the worker has terminated before starting cleanup.
