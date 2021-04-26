@@ -86,7 +86,7 @@ func supervisor(
 		os.Getpid(), sleep, cleanup)
 
 	cancelWork := make(chan struct{})
-	workerDone := worker(cancelWork, sleep)
+	workerDone := worker(cancelWork, sleep, "work")
 
 	cancelCleaner := make(chan struct{})
 	var cleanerDone <-chan struct{}
@@ -102,7 +102,7 @@ func supervisor(
 				// we are ensured that the worker has terminated before starting cleanup.
 				// This is important in some real-life situations.
 				cancelWork <- struct{}{}
-				cleanerDone = cleaner(cancelCleaner, cleanup)
+				cleanerDone = worker(cancelCleaner, cleanup, "cleanup")
 			}
 			if sigCount == termAfter {
 				cancelCleaner <- struct{}{}
@@ -117,6 +117,7 @@ func supervisor(
 }
 
 // Start a worker goroutine and return immediately a `workerDone` channel.
+// The goroutine will prepend its prints with the prefix `name`.
 // The goroutine will simulate some work and will terminate when one of the following
 // conditions happens:
 // 1. When `howlong` is elapsed. This case will be signaled on the `workerDone` channel.
@@ -124,19 +125,23 @@ func supervisor(
 //    so cancellation is not instantaneous: if the caller wants a synchronous cancel,
 //    it should send a message; if instead it wants an asynchronous cancel, it should
 //    close the channel.
-func worker(canceled <-chan struct{}, howlong time.Duration) <-chan struct{} {
+func worker(
+	canceled <-chan struct{},
+	howlong time.Duration,
+	name string,
+) <-chan struct{} {
 	workerDone := make(chan struct{})
 	deadline := time.Now().Add(howlong)
 	go func() {
-		fmt.Printf("sleepit: work started\n")
+		fmt.Printf("sleepit: %s started\n", name)
 		for {
 			select {
 			case <-canceled:
-				fmt.Printf("sleepit: work canceled\n")
+				fmt.Printf("sleepit: %s canceled\n", name)
 				return
 			default:
 				if doSomeWork(deadline) {
-					fmt.Printf("sleepit: work done\n")
+					fmt.Printf("sleepit: %s done\n", name) // <== NOTE THIS LINE
 					workerDone <- struct{}{}
 					return
 				}
@@ -155,22 +160,4 @@ func doSomeWork(deadline time.Time) bool {
 	timeout := 100 * time.Millisecond
 	time.Sleep(timeout)
 	return false
-}
-
-// Start a cleaner goroutine and return immediately a `cleanerDone` channel.
-// The goroutine will simulate cleaning up for `cleanup` duration and will signal on
-// channel `cleanerDone` when it has terminated.
-func cleaner(canceled <-chan struct{}, howlong time.Duration) <-chan struct{} {
-	cleanerDone := make(chan struct{})
-	go func() {
-		fmt.Printf("sleepit: cleanup started, please wait\n")
-		select {
-		case <-canceled:
-			fmt.Printf("sleepit: cleanup canceled\n")
-		case <-time.After(howlong):
-			fmt.Printf("sleepit: cleanup done\n") // <== NOTE THIS LINE
-			cleanerDone <- struct{}{}
-		}
-	}()
-	return cleanerDone
 }
