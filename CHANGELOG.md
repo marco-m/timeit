@@ -26,8 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sleepit: sleep for the specified duration, optionally handling signals
   Usage: sleepit <command> [<args>]
   Commands
-    handle      Handle signals: on reception of SIGINT perform cleanup before exiting
     default     Use default action: on reception of SIGINT terminate abruptly
+    handle      Handle signals: on reception of SIGINT perform cleanup before exiting
+    version     Show the sleepit version
 
   Usage of default:
     -sleep duration

@@ -18,9 +18,15 @@ Usage: sleepit <command> [<args>]
 
 Commands
 
-  handle      Handle signals: on reception of SIGINT perform cleanup before exiting
   default     Use default action: on reception of SIGINT terminate abruptly
+  handle      Handle signals: on reception of SIGINT perform cleanup before exiting
+  version     Show the sleepit version
 `
+
+var (
+	// Filled by the linker.
+	fullVersion = "unknown" // example: v0.0.9-8-g941583d027-dirty
+)
 
 func main() {
 	os.Exit(run(os.Args[1:]))
@@ -32,18 +38,28 @@ func run(args []string) int {
 		return 2
 	}
 
+	defaultCmd := flag.NewFlagSet("default", flag.ExitOnError)
+	defaultSleep := defaultCmd.Duration("sleep", 5*time.Second, "Sleep duration")
+
 	handleCmd := flag.NewFlagSet("handle", flag.ExitOnError)
 	handleSleep := handleCmd.Duration("sleep", 5*time.Second, "Sleep duration")
 	handleCleanup := handleCmd.Duration("cleanup", 5*time.Second, "Cleanup duration")
-
 	handleTermAfter := handleCmd.Int("term-after", 0,
 		"Terminate immediately after `N` signals.\n"+
 			"Default is to terminate only when the cleanup phase has completed.")
 
-	defaultCmd := flag.NewFlagSet("default", flag.ExitOnError)
-	defaultSleep := defaultCmd.Duration("sleep", 5*time.Second, "Sleep duration")
+	versionCmd := flag.NewFlagSet("version", flag.ExitOnError)
 
 	switch args[0] {
+
+	case "default":
+		defaultCmd.Parse(args[1:])
+		if len(defaultCmd.Args()) > 0 {
+			fmt.Fprintf(os.Stderr, "default: unexpected arguments: %v\n", defaultCmd.Args())
+			return 2
+		}
+		return supervisor(*defaultSleep, 0, 0, nil)
+
 	case "handle":
 		handleCmd.Parse(args[1:])
 		if *handleTermAfter == 1 {
@@ -58,13 +74,14 @@ func run(args []string) int {
 		signal.Notify(sigCh, os.Interrupt) // Ctrl-C -> SIGINT
 		return supervisor(*handleSleep, *handleCleanup, *handleTermAfter, sigCh)
 
-	case "default":
-		defaultCmd.Parse(args[1:])
-		if len(defaultCmd.Args()) > 0 {
-			fmt.Fprintf(os.Stderr, "default: unexpected arguments: %v\n", defaultCmd.Args())
+	case "version":
+		versionCmd.Parse(args[1:])
+		if len(versionCmd.Args()) > 0 {
+			fmt.Fprintf(os.Stderr, "version: unexpected arguments: %v\n", versionCmd.Args())
 			return 2
 		}
-		return supervisor(*defaultSleep, 0, 0, nil)
+		fmt.Printf("sleepit version %s\n", fullVersion)
+		return 0
 
 	default:
 		fmt.Fprintln(os.Stderr, usage)
