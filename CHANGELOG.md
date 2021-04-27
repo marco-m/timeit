@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
           Terminate immediately after N signals.
           Default is to terminate only when the cleanup phase has completed.
   ```
+- the sleepit helper now has also a good series of tests.
 - Add CI: build and test with GitHub Actions, for platforms: Linux, macOS, Windows.
 - Add basic and experimental support for Windows. Untested: signal handling.
 

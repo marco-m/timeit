@@ -59,24 +59,33 @@ func TestSmoke(t *testing.T) {
 				t.Errorf("context error: %q", ctx.Err())
 			}
 
-			notFound := []string{}
 			gotLines := strings.SplitAfter(string(out), "\n")
-			for _, wantLine := range tc.wantOut {
-				found := false
-				for _, gotLine := range gotLines {
-					if strings.Contains(gotLine, wantLine) {
-						found = true
-						break
-					}
-				}
-				if !found {
-					notFound = append(notFound, wantLine)
-				}
-			}
+			notFound := notContained(gotLines, tc.wantOut)
 			if len(notFound) > 0 {
 				t.Errorf("some lines not found in output:\nnot found: %q\noutput: %q",
 					notFound, gotLines)
 			}
 		})
 	}
+}
+
+// Return a list of lines from `wantLines` that are not contained in `gotLines`.
+// FIXME this does not enforce ordering. We might want to support both.
+func notContained(gotLines []string, wantLines []string) []string {
+	notFound := []string{}
+
+	for _, wantLine := range wantLines {
+		found := false
+		for _, gotLine := range gotLines {
+			if strings.Contains(gotLine, wantLine) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			notFound = append(notFound, wantLine)
+		}
+	}
+
+	return notFound
 }
