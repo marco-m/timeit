@@ -152,7 +152,7 @@ func run(
 		go func() {
 			for range ticker.C {
 				chroma.Fprintf(out, "\ntimeit ticker: running for %s\n",
-					time.Since(start).Round(time.Millisecond))
+					time.Since(start).Round(time.Second))
 			}
 		}()
 	}
