@@ -128,7 +128,7 @@ func run(
 
 	// We are in the parent, after having started the child.
 	// Ignoring SIGINT as the original /usr/bin/time does with
-	// signal.Ignore(os.Interrupt) has subtle side-effects with the tests.
+	// signal.Ignore(os.Interrupt) has subtle side effects with the tests.
 	// Thus, we do the equivalent with a do-nothing signal handler.
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt)

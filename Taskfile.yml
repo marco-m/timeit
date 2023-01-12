@@ -40,7 +40,7 @@ tasks:
     vars:
       GOTESTSUM:
         sh: if which gotestsum > /dev/null; then echo gotestsum; fi
-      TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}}{{else}}go test{{end}}"
+      TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}} --{{else}}go test{{end}}"
 
   #
   # usage: env RELEASE_TAG=v0.1.0 summon task release
