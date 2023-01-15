@@ -12,12 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix [#1](https://github.com/marco-m/timeit/issues/1) as non reproducible. In any case, added manual test configuration in testdata/terraform.
 - Fix tests about signal handling. Code was already correct, but tests were not.
 
-### Changed, breaking
+### Breaking
+
+- due to the introduction of package kong to parse the command-line, now `timeit` wants flags specified with two hyphens, for example `--ticker` instead of `-ticker`. 
 
 ### Changed
 
-- Upgrade to Go 1.16
+- Upgrade to Go 1.19
 - Upgrade dependencies
+- Integration tests are now driven by package [rogpeppe/go-internal/testscript](http://github.com/rogpeppe/go-internal).
 
 ### New
 
@@ -43,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
           Terminate immediately after N signals.
           Default is to terminate only when the cleanup phase has completed.
   ```
-- the sleepit helper now has also a good series of tests.
+- The sleepit helper now has also a good series of tests.
 - Add CI: build and test with GitHub Actions, for platforms: Linux, macOS, Windows.
 - Add basic and experimental support for Windows. Untested: signal handling.
 

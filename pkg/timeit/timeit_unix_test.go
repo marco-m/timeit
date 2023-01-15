@@ -1,20 +1,34 @@
+//go:build !windows
 // +build !windows
 
-package main
+package timeit_test
 
 import (
 	"bytes"
 	"errors"
 	"os/exec"
+	"path"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestSignalSentToProcessGroup(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	timeit := path.Join(tmpDir, "timeit")
+	cmd1 := exec.Command("go", "build", "-o", timeit, "../../cmd/timeit")
+	assert.NilError(t, cmd1.Run())
+
+	sleepit := path.Join(tmpDir, "sleepit")
+	cmd2 := exec.Command("go", "build", "-o", sleepit, "../../cmd/sleepit")
+	assert.NilError(t, cmd2.Run())
+
 	var out bytes.Buffer
-	sut := exec.Command(TIMEIT, SLEEPIT, "handle", "-sleep=2s", "-cleanup=10ms")
+	sut := exec.Command(timeit, "--", sleepit, "handle", "-sleep=2s", "-cleanup=10ms")
 	sut.Stdout = &out
 	sut.Stderr = &out
 

@@ -1,0 +1,13 @@
+#
+# missing command is an error
+#
+! exec sleepit
+stderr 'Usage: sleepit <command> \[<args>\]'
+! stdout .
+
+#
+# somehow print version :-/
+#
+exec sleepit version
+stdout 'sleepit version unknown'
+! stderr .

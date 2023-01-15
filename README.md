@@ -28,15 +28,15 @@ example:
 
 Time a command and print intermediate timings (color output by default):
 
-    $ timeit -ticker 30s sleep 60
-    timeit ticker: running since 30.001s
-    timeit ticker: running since 1m0.004s
+    $ timeit --ticker 30s sleep 60
+    timeit ticker: running for 30s
+    timeit ticker: running for 1m
     timeit results:
     real: 1m0.005s
 
 Check online if there is a more recent version:
 
-    $ timeit -check-version
+    $ timeit --check-version
     installed version v0.2.1 is older than the latest version v0.3.0
     To upgrade visit https://github.com/marco-m/timeit
 

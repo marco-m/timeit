@@ -7,7 +7,10 @@ vars:
     sh: git describe --long --dirty --always
   SHORT_VERSION:
     sh: git describe --abbrev=0 --always
-  LDFLAGS: -w -s -X main.fullVersion={{.FULL_VERSION}} -X main.shortVersion={{.SHORT_VERSION}}
+  LDFLAGS: >
+    -w -s
+    -X github.com/marco-m/timeit/pkg/timeit.fullVersion={{.FULL_VERSION}}
+    -X github.com/marco-m/timeit/pkg/timeit.shortVersion={{.SHORT_VERSION}}
 
 tasks:
   default:
@@ -23,8 +26,6 @@ tasks:
     dir: bin
     cmds:
       - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/timeit
-    sources: [../cmd/timeit/*.go]
-    generates: [timeit]
   sleepit:
     desc: Build the sleepit executable
     dir: bin

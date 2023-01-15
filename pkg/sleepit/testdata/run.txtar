@@ -1,0 +1,17 @@
+#
+# handle
+#
+exec sleepit handle -sleep=1ms -cleanup=0s
+stdout 'sleepit: ready'
+stdout 'sleepit: work started'
+stdout 'sleepit: work done'
+! stderr .
+
+#
+# default
+#
+exec sleepit default -sleep=1ms
+stdout 'sleepit: ready'
+stdout 'sleepit: work started'
+stdout 'sleepit: work done'
+! stderr .

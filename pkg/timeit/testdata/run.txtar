@@ -1,0 +1,42 @@
+#
+# non existing command is an error, relative path
+#
+! exec timeit non-existing
+! stdout .
+stderr 'timeit: starting child: exec: "non-existing": executable file not found in \$PATH'
+
+#
+# non existing command is an error, absolute path
+#
+! exec timeit /non-existing
+! stdout .
+stderr 'timeit: starting child: fork\/exec \/non-existing: no such file or directory'
+
+#
+# child status 0 is forwarded
+#
+exec timeit sleepit handle -sleep=10ms -cleanup=0s
+stdout 'sleepit: ready'
+stdout 'sleepit: work started'
+stdout 'sleepit: work done'
+stderr 'timeit results:'
+stderr 'real: '
+
+#
+# child status 2 is forwarded
+#
+! exec timeit sleepit x
+! stdout .
+stderr 'Usage: sleepit '
+stderr 'timeit: wait child: exit status 2'
+stderr 'timeit results:'
+stderr 'real: '
+
+#
+# /usr/bin/false child status 1 is forwarded
+#
+! exec timeit false
+! stdout .
+stderr 'timeit: wait child: exit status 1'
+stderr 'timeit results:'
+stderr 'real: '

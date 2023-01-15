@@ -1,5 +1,12 @@
+github.com/alecthomas/assert/v2 v2.1.0 h1:tbredtNcQnoSd3QBhQWI7QZ3XHOVkw1Moklp2ojoH/0=
+github.com/alecthomas/kong v0.7.2-0.20230113143444-95a465b4b532 h1:/ctEwA+R6ANr+8de4W0IsiVOMMEuf7DqT8BR44iiq+c=
+github.com/alecthomas/kong v0.7.2-0.20230113143444-95a465b4b532/go.mod h1:n1iCIO2xS46oE8ZfYCNDqdR0b0wZNrXAIAqro/2132U=
+github.com/alecthomas/repr v0.1.0 h1:ENn2e1+J3k09gyj2shc0dHr/yjaWSHRlrJ4DPMevDqE=
 github.com/fatih/color v1.13.0 h1:8LOYc1KYPPmyKMuN8QV2DNRWNbLo6LZ0iLs8+mlH53w=
 github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
+github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
+github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
+github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=
 github.com/marco-m/taschino v0.0.0-20200608160751-9822f843b063 h1:BnGt2njQ2GOFfs/rdzBC52lIQ6SKdTChqnrHxocnFMg=
 github.com/marco-m/taschino v0.0.0-20200608160751-9822f843b063/go.mod h1:idpHuKnRtan/WIuu5HOvCpClbP0JUigbYWzDgar0yB0=
 github.com/mattn/go-colorable v0.1.9/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
@@ -22,3 +29,5 @@ golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.4.0 h1:Zr2JFtRQNX3BCZ8YtxRE9hNJYC8J6I1MVbMg6owUp18=
 golang.org/x/sys v0.4.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+gotest.tools/v3 v3.4.1-0.20221105191419-f44676a54686 h1:EleR8lkmC9q/+jUvlYAA5PGXlFKJZojiBdlVqJXyM64=
+gotest.tools/v3 v3.4.1-0.20221105191419-f44676a54686/go.mod h1:isy3WKz7GK6uNw/sbHzfKBLvlvXwUyV06n6brMxxopU=

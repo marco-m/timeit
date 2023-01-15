@@ -16,7 +16,7 @@ func TestMain(m *testing.M) {
 }
 
 // NOTE Since understand-script calls os.Exit directly, we miss some coverage information :-(
-func TestUndestandScriptWithScript(t *testing.T) {
+func TestScriptUnderstandScript(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir: "testdata",
 	})

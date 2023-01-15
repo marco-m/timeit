@@ -1,15 +1,19 @@
+//go:build !windows
 // +build !windows
 
-package main
+package sleepit_test
 
 import (
 	"bytes"
 	"errors"
 	"os/exec"
+	"path"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
+
+	"gotest.tools/v3/assert"
 )
 
 func TestSignalSentToProcessGroup(t *testing.T) {
@@ -43,10 +47,16 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 		},
 	}
 
+	tmpDir := t.TempDir()
+
+	sleepit := path.Join(tmpDir, "sleepit")
+	cmd := exec.Command("go", "build", "-o", sleepit, "../../cmd/sleepit")
+	assert.NilError(t, cmd.Run())
+
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			var out bytes.Buffer
-			sut := exec.Command(SLEEPIT, tc.args...)
+			sut := exec.Command(sleepit, tc.args...)
 			sut.Stdout = &out
 			sut.Stderr = &out
 			// Create a new process group by setting the process group ID of the child
@@ -126,4 +136,25 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Return a list of lines from `wantLines` that are not contained in `gotLines`.
+// FIXME this does not enforce ordering. We might want to support both.
+func notContained(gotLines []string, wantLines []string) []string {
+	notFound := []string{}
+
+	for _, wantLine := range wantLines {
+		found := false
+		for _, gotLine := range gotLines {
+			if strings.Contains(gotLine, wantLine) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			notFound = append(notFound, wantLine)
+		}
+	}
+
+	return notFound
 }

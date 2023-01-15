@@ -1,0 +1,13 @@
+#
+# missing command is an error
+#
+! exec timeit
+! stdout .
+stderr 'timeit: error: expected <command> ...'
+
+#
+# somehow print version :-/
+#
+exec timeit --version
+stdout 'timeit version unknown'
+! stderr .
