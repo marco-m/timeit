@@ -1,0 +1,11 @@
+exec understand-script return-0
+stdout return-0
+! stderr .
+
+! exec understand-script return-2
+stdout return-2
+! stderr .
+
+! exec understand-script exit-11
+stdout exit-11
+! stderr .

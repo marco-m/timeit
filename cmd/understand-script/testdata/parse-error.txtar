@@ -1,0 +1,14 @@
+# too few arguments
+! exec understand-script
+! stdout .
+stderr 'usage: understand-script'
+
+# too many arguments
+! exec understand-script 1 2
+! stdout .
+stderr 'usage: understand-script'
+
+# correct number of arguments, but wrong value
+! exec understand-script 1
+! stdout .
+stderr 'usage: understand-script'
