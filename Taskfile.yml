@@ -17,7 +17,7 @@ tasks:
     cmds: [rm -rf bin/*]
   build:
     desc: Build all the executables
-    deps: [timeit, sleepit]
+    deps: [timeit, sleepit, understand-script]
   timeit:
     desc: Build the timeit executable
     dir: bin
@@ -30,17 +30,22 @@ tasks:
     dir: bin
     cmds:
       - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/sleepit
-    sources: [../cmd/sleepit/*.go]
-    generates: [sleepit]
+  understand-script:
+    desc: Build the understand-script executable
+    dir: bin
+    cmds:
+      - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/understand-script
   test:
     desc: Run the integration tests
     deps: [build]
     cmds:
-      - "{{.TESTRUNNER}} ./..."
+      - "{{.TESTRUNNER}} -coverprofile=bin/cover.out  ./..."
     vars:
       GOTESTSUM:
         sh: if which gotestsum > /dev/null; then echo gotestsum; fi
       TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}} --{{else}}go test{{end}}"
+  browser:
+    go tool cover -html=bin/cover.out
 
   #
   # usage: env RELEASE_TAG=v0.1.0 summon task release
