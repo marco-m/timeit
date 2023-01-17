@@ -37,9 +37,10 @@ tasks:
       - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/understand-script
   test:
     desc: Run the integration tests
-    deps: [build]
+    deps: [timeit, sleepit]
     cmds:
       - "{{.TESTRUNNER}} -coverprofile=bin/cover.out  ./..."
+      - ./bin/timeit --version | grep "timeit version v0\."
     vars:
       GOTESTSUM:
         sh: if which gotestsum > /dev/null; then echo gotestsum; fi
