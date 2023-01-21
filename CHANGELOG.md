@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [v0.7.0] - [2023-01-21]
 
 ### Fixed
 
@@ -18,8 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Upgrade to Go 1.19
-- Upgrade dependencies
+- Upgrade to Go 1.19.
+- Upgrade dependencies.
 - Integration tests are now driven by package [rogpeppe/go-internal/testscript](http://github.com/rogpeppe/go-internal).
 
 ### New
@@ -107,3 +107,4 @@ First release.
 [v0.4.0]: https://github.com/marco-m/timeit/releases/tag/v0.4.0
 [v0.5.0]: https://github.com/marco-m/timeit/releases/tag/v0.5.0
 [v0.6.0]: https://github.com/marco-m/timeit/releases/tag/v0.6.0
+[v0.7.0]: https://github.com/marco-m/timeit/releases/tag/v0.7.0
