@@ -3,14 +3,15 @@
 #
 ! exec timeit non-existing
 ! stdout .
-stderr 'timeit: starting child: exec: "non-existing": executable file not found in \$PATH'
+stderr 'timeit: starting child: exec: "non-existing": executable file not found in '
 
 #
 # non existing command is an error, absolute path
 #
 ! exec timeit /non-existing
 ! stdout .
-stderr 'timeit: starting child: fork\/exec \/non-existing: no such file or directory'
+stderr 'timeit: starting child: .*exec .* (no such file or directory)|(file does not exist)'
+
 
 #
 # child status 0 is forwarded

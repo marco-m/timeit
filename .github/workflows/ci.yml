@@ -7,15 +7,14 @@ jobs:
   all:
     strategy:
       matrix:
-        go-version: [1.16.x]
-        # macOS BigSur 11.0 is in private beta, so we use Catalina 10.15
-        os: [ubuntu-20.04, macos-10.15, windows-2019]
-        task-version: [v3.3.0]
-        gotestsum-version: [v1.6.3]
+        go-version: [1.19.x]
+        os: [ubuntu-22.04, macos-12, windows-2022]
+        task-version: [v3.20.0]
+        gotestsum-version: [v1.9.0]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Install Go ${{ matrix.go-version }}
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go-version }}
     - name: Install task ${{ matrix.task-version }}
@@ -23,16 +22,21 @@ jobs:
     - name: Install gotestsum ${{ matrix.gotestsum-version }}
       run: go install gotest.tools/gotestsum@${{ matrix.gotestsum-version }}
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         # By default, actions/checkout will persist the GITHUB_TOKEN, so that further
         # steps in the job can perform authenticated git commands (that is: WRITE to
         # the repo). Following the Principle of least privilege, we disable this as long
         # as we don't need it.
         persist-credentials: false
+        # Number of commits to fetch. Default: 1
+        # We need to fetch more to find the latest tag, to create the version string.
+        # Bug? If we pass a non-zero value, it uses `git fetch --no-tags`, so we are
+        # forced to clone the whole history, by passing `0`.
+        fetch-depth: 0
     - name: Build
       run: task build
     - name: Test
       run: task test
     - name: timeit smoke
-      run: ./bin/timeit -ticker=200ms ./bin/sleepit default -sleep=1s
+      run: ./bin/timeit --ticker=200ms ./bin/sleepit default -sleep=1s
