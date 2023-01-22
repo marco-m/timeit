@@ -83,7 +83,7 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 					ready = true
 					break
 				}
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(time.Millisecond)
 			}
 			if !ready {
 				t.Fatalf(
