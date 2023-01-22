@@ -72,7 +72,7 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 			}
 
 			// After the child is started, we want to avoid a race condition where we send
-			// it a signal before it had time to setup its own signal handlers. Sleeping
+			// it a signal before it had time to set up its own signal handlers. Sleeping
 			// is way too flaky, instead we parse the child output until we get a line
 			// that we know is printed after the signal handlers are installed...
 			ready := false

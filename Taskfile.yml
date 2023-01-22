@@ -38,16 +38,19 @@ tasks:
       - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/understand-script
   test:
     desc: Run the integration tests
-    deps: [timeit, sleepit]
     cmds:
       - "{{.TESTRUNNER}} -coverprofile=bin/cover.out  ./..."
-      - ./bin/timeit --version | grep "timeit version v0\."
+      - task: test-version
     vars:
       GOTESTSUM:
         sh: if which gotestsum > /dev/null; then echo gotestsum; fi
       TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}} --{{else}}go test{{end}}"
   browser:
     go tool cover -html=bin/cover.out
+  test-version:
+    deps: [timeit]
+    cmds:
+      - ./bin/timeit --version | grep "  version: v0\."
 
   #
   # usage: env RELEASE_TAG=v0.1.0 summon task release

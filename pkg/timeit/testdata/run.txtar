@@ -12,7 +12,6 @@ stderr 'timeit: starting child: exec: "non-existing": executable file not found 
 ! stdout .
 stderr 'timeit: starting child: .*exec .* (no such file or directory)|(file does not exist)'
 
-
 #
 # child status 0 is forwarded
 #

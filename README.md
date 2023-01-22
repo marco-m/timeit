@@ -50,7 +50,7 @@ Unix-like and macOS.
 
 ## Signal handling and exit status
 
-`timeit`, like its ancestor `/usr/bin/time`, will ignore SIGINT (CTRL-C) and will transparently let the timed command decide how to handle the signal. This allows for example the timed command to react to SIGINT by entering a clean up phase before exiting.
+`timeit`, like its ancestor `/usr/bin/time`, will ignore SIGINT (CTRL-C) and will transparently let the timed command decide how to handle the signal. This allows for example the timed command to react to SIGINT by entering a cleanup phase before exiting.
 
 In any case, `timeit` will exit with the same exit status of the timed command.
 
