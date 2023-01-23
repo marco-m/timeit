@@ -23,7 +23,7 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 		wantOut  []string
 	}{
 		"send 1 signal": {
-			args:     []string{"handle", "-sleep=10ms", "-cleanup=10ms"},
+			args:     []string{"handle", "--sleep=10ms", "--cleanup=10ms"},
 			sendSigs: 1,
 			wantOut: []string{
 				"sleepit: ready\n",
@@ -34,7 +34,7 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 				"sleepit: cleanup done\n"},
 		},
 		"send 2 signals": {
-			args:     []string{"handle", "-sleep=10ms", "-cleanup=10ms"},
+			args:     []string{"handle", "--sleep=10ms", "--cleanup=10ms"},
 			sendSigs: 2,
 			wantOut: []string{
 				"sleepit: ready\n",

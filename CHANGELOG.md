@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- the displayed duration of each ticker is now correctly rounded to a unit proportional to the value of the `--ticker` flag.
+- The displayed duration of each ticker is now correctly rounded to a unit proportional to the value of the `--ticker` flag.
+
+### Breaking
+
+- Due to the introduction of package kong to parse the command-line, now `sleepit` wants flags specified with two hyphens, for example `--sleep` instead of `-sleep`.
 
 ## [v0.7.0] - [2023-01-21]
 
@@ -20,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
-- due to the introduction of package kong to parse the command-line, now `timeit` wants flags specified with two hyphens, for example `--ticker` instead of `-ticker`. 
+- Due to the introduction of package kong to parse the command-line, now `timeit` wants flags specified with two hyphens, for example `--ticker` instead of `-ticker`. 
 
 ### Changed
 

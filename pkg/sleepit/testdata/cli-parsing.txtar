@@ -2,12 +2,11 @@
 # missing command is an error
 #
 ! exec sleepit
-stderr 'Usage: sleepit <command> \[<args>\]'
-! stdout .
+stdout 'Usage: sleepit <command>'
+stderr 'sleepit: error: expected one of "default",  "handle"'
 
 #
-# somehow print version :-/
+# term-after cannot be 1
 #
-exec sleepit version
-stdout 'sleepit version unknown'
-! stderr .
+! exec sleepit handle --term-after=1
+stderr 'sleepit: handle: --term-after cannot be 1'
