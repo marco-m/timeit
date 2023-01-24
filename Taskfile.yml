@@ -50,7 +50,7 @@ tasks:
   test-version:
     deps: [timeit]
     cmds:
-      - ./bin/timeit --version | grep "  version: v0\."
+      - './bin/timeit --version | grep "  version: v0\."'
 
   #
   # usage: env RELEASE_TAG=v0.1.0 summon task release

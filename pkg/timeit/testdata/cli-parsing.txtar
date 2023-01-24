@@ -3,7 +3,7 @@
 #
 ! exec timeit
 ! stdout .
-stderr 'timeit: error: expected <command> ...'
+stderr 'timeit: expected <command> ...'
 
 #
 # somehow print version :-/

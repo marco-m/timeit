@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/alecthomas/kong v0.7.2-0.20230113143444-95a465b4b532
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.14.1
 	github.com/marco-m/taschino v0.0.0-20200608160751-9822f843b063
 	github.com/mattn/go-isatty v0.0.17
 	github.com/rogpeppe/go-internal v1.9.1-0.20230113211820-9957a5216c11

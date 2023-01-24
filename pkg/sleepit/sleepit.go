@@ -13,18 +13,18 @@ import (
 	"github.com/alecthomas/kong"
 )
 
-type SleepError struct {
+type Error struct {
 	msg  string
 	code int
 }
 
-func (e *SleepError) Error() string {
+func (e *Error) Error() string {
 	return fmt.Sprintf("msg: %s code: %d", e.msg, e.code)
 }
 
 var (
-	CleanerDoneError      = &SleepError{msg: "cleaner done", code: 3}
-	CleanerCancelledError = &SleepError{msg: "cleaner cancelled", code: 4}
+	CleanerDoneError      = &Error{msg: "cleaner done", code: 3}
+	CleanerCancelledError = &Error{msg: "cleaner cancelled", code: 4}
 )
 
 type common struct {
@@ -55,7 +55,7 @@ func Main() int {
 			Summary: true,
 		}))
 	if err := kctx.Run(cfg.Common); err != nil {
-		var se *SleepError
+		var se *Error
 		if errors.As(err, &se) {
 			fmt.Fprintln(os.Stderr, "sleepit:", se.msg)
 			return se.code
@@ -72,7 +72,7 @@ func (cmd *SigDefaultCmd) Run(ctx common) error {
 
 func (cmd *SigHandleCmd) Run(ctx common) error {
 	if cmd.TermAfter == 1 {
-		return &SleepError{
+		return &Error{
 			msg:  "handle: --term-after cannot be 1",
 			code: 2,
 		}

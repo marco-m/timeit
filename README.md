@@ -4,9 +4,10 @@
 
 The `timeit` utility measures the time of command execution.
 
-It has some features inspired by the FreeBSD `/usr/bin/time`:
-
-1. Human friendly output (for example: `1h32m43s` instead of `5563.00`)
+It has the following features:
+- Color output.
+- Human friendly output (for example: `1h32m43s` instead of `5563.00`), inspired by the FreeBSD `/usr/bin/time`.
+- Periodic ticker.
 
 ## Examples
 
