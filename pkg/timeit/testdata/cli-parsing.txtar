@@ -3,11 +3,13 @@
 #
 ! exec timeit
 ! stdout .
-stderr 'timeit: error: expected <command> ...'
+stderr 'timeit: expected <command> ...'
 
 #
 # somehow print version :-/
 #
 exec timeit --version
-stdout 'timeit version unknown'
+stdout 'timeit:'
+stdout '  version: unknown'
+stdout '  home:    https://github.com/marco-m/timeit'
 ! stderr .

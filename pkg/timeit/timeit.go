@@ -5,7 +5,6 @@ package timeit
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -29,15 +28,24 @@ type config struct {
 	CheckVersion   bool          `help:"Check online if new version is available and exit."`
 	NoColor        bool          `help:"Disable color output."`
 	TickerDuration time.Duration `name:"ticker" placeholder:"DURATION" help:"Print a status line each DURATION."`
+
 	// Command must be optional to support --version
 	Command []string `arg:"" optional:"" passthrough:"" help:"Command to time."`
 }
 
+type Status struct {
+	msg     string
+	elapsed time.Duration
+	code    int
+}
+
+type printFn func(format string, a ...any)
+
 func Main() int {
 	var cfg config
-	kctx := kong.Parse(&cfg,
+	kong.Parse(&cfg,
 		kong.Name("timeit"),
-		kong.Description("Measure the time of command execution."),
+		kong.Description("The timeit utility measures the time of command execution."),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: false,
@@ -45,42 +53,22 @@ func Main() int {
 		}))
 
 	if cfg.Version {
-		fmt.Println("timeit version " + fullVersion)
+		fmt.Println("timeit:")
+		fmt.Printf("  version: %s\n  home:    https://github.com/marco-m/timeit\n",
+			fullVersion)
 		return 0
 	}
 
 	if cfg.CheckVersion {
-		humanURL := fmt.Sprintf("https://github.com/%s/%s", "marco-m", "timeit")
-		latestVersion, err := release.GitHubLatest("marco-m", "timeit")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+		if err := checkVersion(); err != nil {
+			fmt.Fprintf(os.Stderr, "timeit: %s\n", err)
 			return 1
-		}
-		result, err := release.Compare(shortVersion, latestVersion)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return 1
-		}
-		switch result {
-		case 0:
-			fmt.Fprintf(os.Stderr,
-				"timeit installed version %s is the same as the latest version %s\n",
-				shortVersion, latestVersion)
-		case -1:
-			fmt.Fprintf(os.Stderr,
-				"timeit installed version %s is older than the latest version %s\n",
-				shortVersion, latestVersion)
-			fmt.Fprintln(os.Stderr, "To upgrade visit", humanURL)
-		case +1:
-			fmt.Fprintf(os.Stderr,
-				"timeit (unexpected?) installed version %s is newer than the latest version %s\n",
-				shortVersion, latestVersion)
 		}
 		return 0
 	}
 
 	if len(cfg.Command) == 0 {
-		kctx.Errorf("expected <command> ...")
+		fmt.Fprintf(os.Stderr, "timeit: expected <command> ...\n")
 		return 1
 	}
 
@@ -93,65 +81,146 @@ func Main() int {
 	if len(cfg.Command) > 1 {
 		args = cfg.Command[1:]
 	}
-	return run(cmd, args, cfg, os.Stderr)
+
+	chroma := color.New(color.FgMagenta, color.Bold)
+	out := func(format string, a ...any) {
+		chroma.Fprintf(os.Stderr, format, a...)
+	}
+
+	status := run(cmd, args, cfg, out)
+
+	out(`
+timeit results:
+    %s
+    real: %s
+`, status.msg, status.elapsed.Round(time.Millisecond))
+
+	return status.code
 }
 
-// Run progname and wait for it to terminate.
+func checkVersion() error {
+	const owner = "marco-m"
+	const repo = "timeit"
+	humanURL := fmt.Sprintf("https://github.com/%s/%s", owner, repo)
+	latestVersion, err := release.GitHubLatest(owner, repo)
+	if err != nil {
+		return fmt.Errorf("checkVersion: %s", err)
+	}
+	result, err := release.Compare(shortVersion, latestVersion)
+	if err != nil {
+		return fmt.Errorf("checkVersion: %s", err)
+	}
+	switch result {
+	case 0:
+		fmt.Printf("timeit: installed version %s is the same as the latest version %s\n",
+			shortVersion, latestVersion)
+	case -1:
+		fmt.Printf("timeit: installed version %s is older than the latest version %s\n",
+			shortVersion, latestVersion)
+		fmt.Println("To upgrade visit", humanURL)
+	case +1:
+		fmt.Printf("timeit: (unexpected?) installed version %s is newer than the latest version %s\n",
+			shortVersion, latestVersion)
+	}
+	return nil
+}
+
+// Run executable (name, args) and wait for it to terminate.
 // Write our output to `out`, while the command output goes to stdout and stderr as usual.
-// Return the exit code to pass to os.Exit().
-func run(progname string, args []string, cfg config, out io.Writer) int {
-	chroma := color.New(color.FgMagenta, color.Bold)
-	cmd := exec.Command(progname, args...)
+// Return the Status of the terminated executable.
+func run(name string, args []string, cfg config, out printFn) Status {
+	cmd := exec.Command(name, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	start := time.Now()
-	if startErr := cmd.Start(); startErr != nil {
-		chroma.Fprintln(out, "timeit: starting child:", startErr)
-		return 1
+	t0 := time.Now()
+	if err := cmd.Start(); err != nil {
+		return Status{
+			msg:     fmt.Sprintf("starting command: %s", err),
+			elapsed: time.Since(t0),
+			code:    1,
+		}
 	}
 
-	// We are in the parent, after having started the child.
-	// Ignoring SIGINT as the original /usr/bin/time does with
-	// signal.Ignore(os.Interrupt) has subtle side effects with the tests.
-	// Thus, we do the equivalent with a do-nothing signal handler.
+	//
+	// Here we are in the parent, after having started the child.
+	//
+
+	setupSignalHandling(out)
+
+	cancelTicker := setupPeriodicTicker(t0, cfg.TickerDuration, out)
+
+	waitErr := cmd.Wait()
+	elapsed := time.Since(t0)
+	cancelTicker()
+
+	return extractStatus(cmd.ProcessState, elapsed, waitErr)
+}
+
+// We are in the parent, after having started the child.
+// Ignoring SIGINT as the original /usr/bin/time does with
+// signal.Ignore(os.Interrupt) has subtle side effects with the tests.
+// Thus, we do the equivalent with a do-nothing signal handler.
+func setupSignalHandling(out printFn) {
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt)
 	go func() {
+		count := 0
 		for {
 			sig := <-signalCh
-			chroma.Fprintf(out, "\ntimeit: ignoring received signal: %v\n", sig)
+			count++
+			out("timeit: got signal name=%s count=%d disposition=ignore\n", sig, count)
+		}
+	}()
+}
+
+func setupPeriodicTicker(t0 time.Time, dur time.Duration, out printFn) func() {
+	if dur == 0 {
+		return func() {}
+	}
+
+	done := make(chan struct{})
+	ticker := time.NewTicker(dur)
+	go func() {
+		for {
+			select {
+			case <-done:
+				ticker.Stop()
+				return
+			case now := <-ticker.C:
+				out("\ntimeit ticker: running for %s\n", now.Sub(t0).Truncate(dur))
+			}
 		}
 	}()
 
-	if cfg.TickerDuration != 0 {
-		ticker := time.NewTicker(cfg.TickerDuration)
-		defer ticker.Stop()
-
-		go func() {
-			for range ticker.C {
-				chroma.Fprintf(out, "\ntimeit ticker: running for %s\n",
-					time.Since(start).Round(time.Second))
-			}
-		}()
+	return func() {
+		done <- struct{}{}
 	}
+}
 
-	waitErr := cmd.Wait()
-	if waitErr != nil {
-		chroma.Fprintln(out, "timeit: wait child:", waitErr)
+func extractStatus(procState *os.ProcessState, elapsed time.Duration, waitErr error) Status {
+	code := procState.ExitCode()
+	switch code {
+	case 0: // Success.
+		return Status{
+			msg:     "command succeeded",
+			elapsed: elapsed,
+			code:    code,
+		}
+	case -1: // Process was terminated by a signal.
+		status := procState.Sys().(syscall.WaitStatus)
+		return Status{
+			msg:     fmt.Sprintf("command terminated abnormally: %s", waitErr),
+			elapsed: elapsed,
+			// Follow the shell convention, https://en.wikipedia.org/wiki/Exit_status
+			code: 128 + int(status.Signal()),
+		}
+	default: // Failure.
+		return Status{
+			msg:     fmt.Sprintf("command failed: %s", waitErr),
+			elapsed: elapsed,
+			code:    code,
+		}
 	}
-	chroma.Fprintf(out, `
-timeit results:
-real: %v
-`,
-		time.Since(start).Round(time.Millisecond))
-
-	code := cmd.ProcessState.ExitCode()
-	if code == -1 {
-		status := cmd.ProcessState.Sys().(syscall.WaitStatus)
-		// Follow the shell convention, https://en.wikipedia.org/wiki/Exit_status
-		code = 128 + int(status.Signal())
-	}
-	return code
 }

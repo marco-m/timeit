@@ -1,0 +1,10 @@
+#
+# ticker is printed
+#
+exec timeit --ticker=5ms sleepit handle --sleep=10ms --cleanup=0s
+stdout 'sleepit: ready'
+stdout 'sleepit: work started'
+stdout 'sleepit: work done'
+stderr 'timeit ticker: running for \d+ms'
+stderr 'timeit results:'
+stderr 'real: '

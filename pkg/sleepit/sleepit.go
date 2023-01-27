@@ -4,89 +4,82 @@ package sleepit
 // Copyright (c) 2020-2023 Marco Molteni and the timeit contributors.
 
 import (
-	"flag"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/alecthomas/kong"
 )
 
-const usage = `sleepit: sleep for the specified duration, optionally handling signals
-When the line "sleepit: ready" is printed, it means that it is safe to send signals to it
+type Error struct {
+	msg  string
+	code int
+}
 
-Usage: sleepit <command> [<args>]
-
-Commands
-
-  default     Use default action: on reception of SIGINT terminate abruptly
-  handle      Handle signals: on reception of SIGINT perform cleanup before exiting
-  version     Show the sleepit version`
+func (e *Error) Error() string {
+	return fmt.Sprintf("msg: %s code: %d", e.msg, e.code)
+}
 
 var (
-	// Filled by the linker.
-	fullVersion = "unknown" // example: v0.0.9-8-g941583d027-dirty
+	CleanerDoneError      = &Error{msg: "cleaner done", code: 3}
+	CleanerCancelledError = &Error{msg: "cleaner cancelled", code: 4}
 )
 
-func main() {
-	os.Exit(Main())
+type common struct {
+	Sleep time.Duration `help:"Sleep duration" default:"5s"`
+}
+
+type config struct {
+	Common  common        `embed:""`
+	Default SigDefaultCmd `cmd:"" help:"Use default signal action: on reception of SIGINT terminate abruptly."`
+	Handle  SigHandleCmd  `cmd:"" help:"Handle signals: on reception of SIGINT perform cleanup before exiting."`
+}
+
+type SigDefaultCmd struct{}
+
+type SigHandleCmd struct {
+	Cleanup   time.Duration `help:"Cleanup duration" default:"5s"`
+	TermAfter int           `help:"Terminate immediately after N signals. Default is to terminate only when the cleanup phase has completed." default:"0"`
 }
 
 func Main() int {
-	args := os.Args[1:]
-	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, usage)
-		return 2
+	var cfg config
+	kctx := kong.Parse(&cfg,
+		kong.Name("sleepit"),
+		kong.Description("The sleepit utility sleeps for the specified duration, optionally handling signals.\n\nWhen the line \"sleepit: ready\" is printed, it means that it is safe to send signals to it.\n"),
+		kong.UsageOnError(),
+		kong.ConfigureHelp(kong.HelpOptions{
+			Compact: false,
+			Summary: true,
+		}))
+	if err := kctx.Run(cfg.Common); err != nil {
+		var se *Error
+		if errors.As(err, &se) {
+			fmt.Fprintln(os.Stderr, "sleepit:", se.msg)
+			return se.code
+		}
+		fmt.Fprintln(os.Stderr, "unexpected:", err)
+		return 100 // fixme
 	}
+	return 0
+}
 
-	defaultCmd := flag.NewFlagSet("default", flag.ExitOnError)
-	defaultSleep := defaultCmd.Duration("sleep", 5*time.Second, "Sleep duration")
+func (cmd *SigDefaultCmd) Run(ctx common) error {
+	return supervisor(ctx.Sleep, 0, 0, nil)
+}
 
-	handleCmd := flag.NewFlagSet("handle", flag.ExitOnError)
-	handleSleep := handleCmd.Duration("sleep", 5*time.Second, "Sleep duration")
-	handleCleanup := handleCmd.Duration("cleanup", 5*time.Second, "Cleanup duration")
-	handleTermAfter := handleCmd.Int("term-after", 0,
-		"Terminate immediately after `N` signals.\n"+
-			"Default is to terminate only when the cleanup phase has completed.")
-
-	versionCmd := flag.NewFlagSet("version", flag.ExitOnError)
-
-	switch args[0] {
-
-	case "default":
-		defaultCmd.Parse(args[1:])
-		if len(defaultCmd.Args()) > 0 {
-			fmt.Fprintf(os.Stderr, "default: unexpected arguments: %v\n", defaultCmd.Args())
-			return 2
+func (cmd *SigHandleCmd) Run(ctx common) error {
+	if cmd.TermAfter == 1 {
+		return &Error{
+			msg:  "handle: --term-after cannot be 1",
+			code: 2,
 		}
-		return supervisor(*defaultSleep, 0, 0, nil)
-
-	case "handle":
-		handleCmd.Parse(args[1:])
-		if *handleTermAfter == 1 {
-			fmt.Fprintf(os.Stderr, "handle: term-after cannot be 1\n")
-			return 2
-		}
-		if len(handleCmd.Args()) > 0 {
-			fmt.Fprintf(os.Stderr, "handle: unexpected arguments: %v\n", handleCmd.Args())
-			return 2
-		}
-		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, os.Interrupt) // Ctrl-C -> SIGINT
-		return supervisor(*handleSleep, *handleCleanup, *handleTermAfter, sigCh)
-
-	case "version":
-		versionCmd.Parse(args[1:])
-		if len(versionCmd.Args()) > 0 {
-			fmt.Fprintf(os.Stderr, "version: unexpected arguments: %v\n", versionCmd.Args())
-			return 2
-		}
-		fmt.Printf("sleepit version %s\n", fullVersion)
-		return 0
-
-	default:
-		fmt.Fprintln(os.Stderr, usage)
-		return 2
 	}
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt) // Ctrl-C -> SIGINT
+	return supervisor(ctx.Sleep, cmd.Cleanup, cmd.TermAfter, sigCh)
 }
 
 func supervisor(
@@ -94,7 +87,7 @@ func supervisor(
 	cleanup time.Duration,
 	termAfter int,
 	sigCh <-chan os.Signal,
-) int {
+) error {
 	fmt.Printf("sleepit: ready\n")
 	fmt.Printf("sleepit: PID=%d sleep=%v cleanup=%v\n",
 		os.Getpid(), sleep, cleanup)
@@ -120,12 +113,12 @@ func supervisor(
 			}
 			if sigCount == termAfter {
 				cancelCleaner <- struct{}{}
-				return 4
+				return CleanerCancelledError
 			}
 		case <-workerDone:
-			return 0
+			return nil
 		case <-cleanerDone:
-			return 3
+			return CleanerDoneError
 		}
 	}
 }

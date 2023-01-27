@@ -4,9 +4,10 @@
 
 The `timeit` utility measures the time of command execution.
 
-It has some features inspired by the FreeBSD `/usr/bin/time`:
-
-1. Human friendly output (for example: `1h32m43s` instead of `5563.00`)
+It has the following features:
+- Color output.
+- Human friendly output (for example: `1h32m43s` instead of `5563.00`), inspired by the FreeBSD `/usr/bin/time`.
+- Periodic ticker.
 
 ## Examples
 
@@ -14,7 +15,8 @@ Time a command, with or without options:
 
     $ timeit sleep 61
     timeit results:
-    real: 1m1.008s
+        command succeeded
+        real: 1m1.008s
 
 Time a shell construct: you have to time the execution of a subshell, for
 example:
@@ -24,7 +26,8 @@ example:
     2
     3
     timeit results:
-    real: 3.035s
+        command succeeded
+        real: 3.035s
 
 Time a command and print intermediate timings (color output by default):
 
@@ -32,7 +35,21 @@ Time a command and print intermediate timings (color output by default):
     timeit ticker: running for 30s
     timeit ticker: running for 1m
     timeit results:
-    real: 1m0.005s
+        command succeeded
+        real: 1m0.005s
+
+The termination status of the command is always clearly reported:
+
+    $ timeit false
+    timeit results:
+        command failed: exit status 1
+        real: 2ms
+
+    $ timeit sleep 2
+    ^Ctimeit: got signal name=interrupt count=1 disposition=ignore
+    timeit results:
+        command terminated abnormally: signal: interrupt
+        real: 1.851s
 
 Check online if there is a more recent version:
 
@@ -50,7 +67,7 @@ Unix-like and macOS.
 
 ## Signal handling and exit status
 
-`timeit`, like its ancestor `/usr/bin/time`, will ignore SIGINT (CTRL-C) and will transparently let the timed command decide how to handle the signal. This allows for example the timed command to react to SIGINT by entering a clean up phase before exiting.
+`timeit`, like its ancestor `/usr/bin/time`, will ignore SIGINT (CTRL-C) and will transparently let the timed command decide how to handle the signal. This allows for example the timed command to react to SIGINT by entering a cleanup phase before exiting.
 
 In any case, `timeit` will exit with the same exit status of the timed command.
 

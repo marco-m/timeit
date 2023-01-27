@@ -1,8 +1,9 @@
 #
 # handle
 #
-exec sleepit handle -sleep=1ms -cleanup=0s
+exec sleepit handle --sleep=1ms --cleanup=0s
 stdout 'sleepit: ready'
+stdout 'sleepit: PID=\d+ sleep=1ms cleanup=0s'
 stdout 'sleepit: work started'
 stdout 'sleepit: work done'
 ! stderr .
@@ -10,8 +11,9 @@ stdout 'sleepit: work done'
 #
 # default
 #
-exec sleepit default -sleep=1ms
+exec sleepit default --sleep=1ms
 stdout 'sleepit: ready'
+stdout 'sleepit: PID=\d+ sleep=1ms cleanup=0s'
 stdout 'sleepit: work started'
 stdout 'sleepit: work done'
 ! stderr .

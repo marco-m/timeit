@@ -3,20 +3,22 @@
 #
 ! exec timeit non-existing
 ! stdout .
-stderr 'timeit: starting child: exec: "non-existing": executable file not found in '
+stderr 'timeit results:'
+stderr '    starting command: exec: "non-existing": executable file not found in '
+stderr '    real: '
 
 #
 # non existing command is an error, absolute path
 #
 ! exec timeit /non-existing
 ! stdout .
-stderr 'timeit: starting child: .*exec .* (no such file or directory)|(file does not exist)'
-
+stderr 'timeit results:'
+stderr '    starting command: .*exec .* (no such file or directory)|(file does not exist)'
 
 #
 # child status 0 is forwarded
 #
-exec timeit sleepit handle -sleep=10ms -cleanup=0s
+exec timeit sleepit handle --sleep=10ms --cleanup=0s
 stdout 'sleepit: ready'
 stdout 'sleepit: work started'
 stdout 'sleepit: work done'
@@ -24,20 +26,21 @@ stderr 'timeit results:'
 stderr 'real: '
 
 #
-# child status 2 is forwarded
+# child status 1 is forwarded
 #
 ! exec timeit sleepit x
-! stdout .
-stderr 'Usage: sleepit '
-stderr 'timeit: wait child: exit status 2'
+stdout 'Usage: sleepit <command>'
+stderr 'sleepit: error: unexpected argument x'
 stderr 'timeit results:'
-stderr 'real: '
+stderr '    command failed: exit status 1'
+stderr '    real: '
+
 
 #
 # /usr/bin/false child status 1 is forwarded
 #
 ! exec timeit false
 ! stdout .
-stderr 'timeit: wait child: exit status 1'
 stderr 'timeit results:'
-stderr 'real: '
+stderr '    command failed: exit status 1'
+stderr '    real: '
