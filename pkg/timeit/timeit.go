@@ -39,6 +39,8 @@ type Status struct {
 	code    int
 }
 
+type printFn func(format string, a ...any)
+
 func Main() int {
 	var cfg config
 	kong.Parse(&cfg,
@@ -126,50 +128,79 @@ func checkVersion() error {
 // Run executable (name, args) and wait for it to terminate.
 // Write our output to `out`, while the command output goes to stdout and stderr as usual.
 // Return the Status of the terminated executable.
-func run(name string, args []string, cfg config, out func(format string, a ...any)) Status {
+func run(name string, args []string, cfg config, out printFn) Status {
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	startTS := time.Now()
+	t0 := time.Now()
 	if err := cmd.Start(); err != nil {
 		return Status{
 			msg:     fmt.Sprintf("starting command: %s", err),
-			elapsed: time.Since(startTS),
+			elapsed: time.Since(t0),
 			code:    1,
 		}
 	}
 
-	// We are in the parent, after having started the child.
-	// Ignoring SIGINT as the original /usr/bin/time does with
-	// signal.Ignore(os.Interrupt) has subtle side effects with the tests.
-	// Thus, we do the equivalent with a do-nothing signal handler.
+	//
+	// Here we are in the parent, after having started the child.
+	//
+
+	setupSignalHandling(out)
+
+	cancelTicker := setupPeriodicTicker(t0, cfg.TickerDuration, out)
+
+	waitErr := cmd.Wait()
+	elapsed := time.Since(t0)
+	cancelTicker()
+
+	return extractStatus(cmd.ProcessState, elapsed, waitErr)
+}
+
+// We are in the parent, after having started the child.
+// Ignoring SIGINT as the original /usr/bin/time does with
+// signal.Ignore(os.Interrupt) has subtle side effects with the tests.
+// Thus, we do the equivalent with a do-nothing signal handler.
+func setupSignalHandling(out printFn) {
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt)
 	go func() {
+		count := 0
 		for {
 			sig := <-signalCh
-			out("\ntimeit: ignoring received signal: %v\n", sig)
+			count++
+			out("timeit: got signal name=%s count=%d disposition=ignore\n", sig, count)
+		}
+	}()
+}
+
+func setupPeriodicTicker(t0 time.Time, dur time.Duration, out printFn) func() {
+	if dur == 0 {
+		return func() {}
+	}
+
+	done := make(chan struct{})
+	ticker := time.NewTicker(dur)
+	go func() {
+		for {
+			select {
+			case <-done:
+				ticker.Stop()
+				return
+			case now := <-ticker.C:
+				out("\ntimeit ticker: running for %s\n", now.Sub(t0).Truncate(dur))
+			}
 		}
 	}()
 
-	if cfg.TickerDuration != 0 {
-		ticker := time.NewTicker(cfg.TickerDuration)
-		defer ticker.Stop()
-
-		go func() {
-			for range ticker.C {
-				out("\ntimeit ticker: running for %s\n",
-					time.Since(startTS).Round(cfg.TickerDuration))
-			}
-		}()
+	return func() {
+		done <- struct{}{}
 	}
+}
 
-	waitErr := cmd.Wait()
-
-	elapsed := time.Since(startTS)
-	code := cmd.ProcessState.ExitCode()
+func extractStatus(procState *os.ProcessState, elapsed time.Duration, waitErr error) Status {
+	code := procState.ExitCode()
 	switch code {
 	case 0: // Success.
 		return Status{
@@ -178,7 +209,7 @@ func run(name string, args []string, cfg config, out func(format string, a ...an
 			code:    code,
 		}
 	case -1: // Process was terminated by a signal.
-		status := cmd.ProcessState.Sys().(syscall.WaitStatus)
+		status := procState.Sys().(syscall.WaitStatus)
 		return Status{
 			msg:     fmt.Sprintf("command terminated abnormally: %s", waitErr),
 			elapsed: elapsed,
