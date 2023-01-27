@@ -15,7 +15,8 @@ Time a command, with or without options:
 
     $ timeit sleep 61
     timeit results:
-    real: 1m1.008s
+        command succeeded
+        real: 1m1.008s
 
 Time a shell construct: you have to time the execution of a subshell, for
 example:
@@ -25,7 +26,8 @@ example:
     2
     3
     timeit results:
-    real: 3.035s
+        command succeeded
+        real: 3.035s
 
 Time a command and print intermediate timings (color output by default):
 
@@ -33,7 +35,21 @@ Time a command and print intermediate timings (color output by default):
     timeit ticker: running for 30s
     timeit ticker: running for 1m
     timeit results:
-    real: 1m0.005s
+        command succeeded
+        real: 1m0.005s
+
+The termination status of the command is always clearly reported:
+
+    $ timeit false
+    timeit results:
+        command failed: exit status 1
+        real: 2ms
+
+    $ timeit sleep 2
+    ^Ctimeit: got signal name=interrupt count=1 disposition=ignore
+    timeit results:
+        command terminated abnormally: signal: interrupt
+        real: 1.851s
 
 Check online if there is a more recent version:
 

@@ -15,6 +15,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Due to the introduction of package kong to parse the command-line, now `sleepit` wants flags specified with two hyphens, for example `--sleep` instead of `-sleep`.
 
+### Changed
+
+- Timeit now always reports the command status. For example:
+   ```
+   $ timeit true
+   timeit results:
+       command succeeded
+       real: 4ms
+
+   $ timeit false
+   timeit results:
+       command failed: exit status 1
+       real: 2ms
+
+   $ timeit sleep 2
+   ^Ctimeit: got signal name=interrupt count=1 disposition=ignore
+   timeit results:
+       command terminated abnormally: signal: interrupt
+       real: 1.851s
+   ```
+
 ## [v0.7.0] - [2023-01-21]
 
 ### Fixed
