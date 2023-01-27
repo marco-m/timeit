@@ -5,6 +5,7 @@ package timeit
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -28,6 +29,7 @@ type config struct {
 	CheckVersion   bool          `help:"Check online if new version is available and exit."`
 	NoColor        bool          `help:"Disable color output."`
 	TickerDuration time.Duration `name:"ticker" placeholder:"DURATION" help:"Print a status line each DURATION."`
+	Summarize      string        `placeholder:"PAT" help:"each ticker, summarize the in-flight operations of PAT (currently supports only pytest)."`
 
 	// Command must be optional to support --version
 	Command []string `arg:"" optional:"" passthrough:"" help:"Command to time."`
@@ -131,8 +133,17 @@ func checkVersion() error {
 func run(name string, args []string, cfg config, out printFn) Status {
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return Status{
+			msg:     fmt.Sprintf("getting pipe for command stdout: %s", err),
+			elapsed: 0,
+			code:    1,
+		}
+	}
+
+	setupProcessOutput(cfg.Summarize, stdout, out)
 
 	t0 := time.Now()
 	if err := cmd.Start(); err != nil {
@@ -156,6 +167,18 @@ func run(name string, args []string, cfg config, out printFn) Status {
 	cancelTicker()
 
 	return extractStatus(cmd.ProcessState, elapsed, waitErr)
+}
+
+func setupProcessOutput(summarize string, stdout io.Reader, out printFn) {
+	// stdout copier if no --summarize flag
+	if summarize == "" {
+		go func() {
+			if _, err := io.Copy(os.Stdout, stdout); err != nil {
+				// FIXME Report to the errors channel and be printed at the end.
+				out("timeit: copying stdout: %s\n", err)
+			}
+		}()
+	}
 }
 
 // We are in the parent, after having started the child.
