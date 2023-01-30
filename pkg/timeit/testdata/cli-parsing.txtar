@@ -13,3 +13,17 @@ stdout 'timeit:'
 stdout '  version: unknown'
 stdout '  home:    https://github.com/marco-m/timeit'
 ! stderr .
+
+#
+# unknown observe is an error
+#
+! exec timeit --observe=does-not-exist true
+stderr 'timeit: unknown --observe=does-not-exist; must be pytest'
+! stdout .
+
+#
+# observe without ticker is an error
+#
+! exec timeit --observe=pytest true
+stderr 'timeit: --observe requires --ticker'
+! stdout .

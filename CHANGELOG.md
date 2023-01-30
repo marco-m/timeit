@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## UNRELEASED
 
+### New
+
+- New timeit option `--observe` detects and summarizes the output of a command. First supported format: pytest (see README for an example).
+- New `pytestsim` utility to test the observe in-flight operations (see item above).
+
 ### Fixed
 
 - The displayed duration of each ticker is now correctly rounded to a unit proportional to the value of the `--ticker` flag.

@@ -11,6 +11,9 @@ vars:
     -w -s
     -X github.com/marco-m/timeit/pkg/timeit.fullVersion={{.FULL_VERSION}}
     -X github.com/marco-m/timeit/pkg/timeit.shortVersion={{.SHORT_VERSION}}
+  GOTESTSUM:
+    sh: if which gotestsum > /dev/null; then echo gotestsum; fi
+  TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}} --{{else}}go test{{end}}"
 
 tasks:
   default:
@@ -20,7 +23,7 @@ tasks:
     cmds: [rm -rf bin/*]
   build:
     desc: Build all the executables
-    deps: [timeit, sleepit, understand-script]
+    deps: [timeit, sleepit, understand-script, pytestsim]
   timeit:
     desc: Build the timeit executable
     dir: bin
@@ -36,18 +39,27 @@ tasks:
     dir: bin
     cmds:
       - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/understand-script
-  test:
-    desc: Run the integration tests
+  pytestsim:
+    desc: Build the pytestsim executable
+    dir: bin
     cmds:
-      - "{{.TESTRUNNER}} -coverprofile=bin/cover.out  ./..."
-      - task: test-version
-    vars:
-      GOTESTSUM:
-        sh: if which gotestsum > /dev/null; then echo gotestsum; fi
-      TESTRUNNER: "{{if .GOTESTSUM}}{{.GOTESTSUM}} --{{else}}go test{{end}}"
+      - go build -v -ldflags="{{.LDFLAGS}}" ../cmd/pytestsim
+  test:
+    desc: Run all the tests
+    cmds:
+      - "{{.TESTRUNNER}} -coverprofile=bin/cover.out ./..."
+      - task: test:version
+  test:script:
+    desc: Run only the testscript tests
+    cmds:
+      - "{{.TESTRUNNER}} -coverprofile=bin/cover.out -run=^TestScript ./..."
+  test:unit:
+    desc: Run only the unit tests. Requires Go >= 1.20 for -skip
+    cmds:
+      - "{{.TESTRUNNER}} -coverprofile=bin/cover.out -skip=^TestScript ./..."
   browser:
     go tool cover -html=bin/cover.out
-  test-version:
+  test:version:
     deps: [timeit]
     cmds:
       - './bin/timeit --version | grep "  version: v0\."'

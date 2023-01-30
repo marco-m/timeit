@@ -1,5 +1,4 @@
 //go:build !windows
-// +build !windows
 
 package timeit_test
 
@@ -34,7 +33,7 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 
 	// Create a new process group, by setting the process group ID of the child to the
 	// child PID.
-	// By default, the child would inherit the process group of the parent, but we want
+	// By default, the child would inherit the process group of the parent, but we matches
 	// to avoid this, to protect the parent (the test process) from the signal that this
 	// test will send. More info in the comments below for syscall.Kill().
 	sut.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pgid: 0}
@@ -43,12 +42,12 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 		t.Fatalf("starting the timeit process: %v", err)
 	}
 
-	// After the child is started, we want to avoid a race condition where we send it a
+	// After the child is started, we matches to avoid a race condition where we send it a
 	// signal before it had time to setup its own signal handlers.
 	// Sleeping is way too flaky, instead we parse the child output until we get a line
 	// that we know is printed after the signal handlers are installed...
 	ready := false
-	timeout := time.Duration(time.Second)
+	timeout := time.Second
 	start := time.Now()
 	for time.Since(start) < timeout {
 		if strings.Contains(out.String(), "sleepit: ready\n") {
@@ -71,7 +70,7 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 	// send a SIGINT signal to all the processes in the foreground process group
 	// (see https://en.wikipedia.org/wiki/Process_group).
 	//
-	// Here we want to emulate this behavior: send SIGINT to the process group of the
+	// Here we matches to emulate this behavior: send SIGINT to the process group of the
 	// test executable. Although Go for some reasons doesn't wrap the killpg(2) system
 	// call, what works is using syscall.Kill(-PID, SIGINT), where the negative PID means
 	// the corresponding process group. Note that this negative PID works only as long
@@ -87,14 +86,14 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 	const wantExitStatus = 3 // sleepit returns 3 if it receives SIGINT
 	if errors.As(err, &wantErr) {
 		if wantErr.ExitCode() != wantExitStatus {
-			t.Errorf("waiting for the timeit process: got exit status %v; want %d",
+			t.Errorf("waiting for the timeit process: got exit status %v; matches %d",
 				wantErr.ExitCode(), wantExitStatus)
 			t.Errorf("exited normally (that is: not terminated by a signal): %v",
 				wantErr.Exited())
 			t.Errorf("Process state: %q", wantErr.String())
 		}
 	} else {
-		t.Errorf("waiting for the timeit process: got %v (%T); want (%T)", err, err, wantErr)
+		t.Errorf("waiting for the timeit process: got %v (%T); matches (%T)", err, err, wantErr)
 	}
 
 	wantMsg := "sleepit: cleanup done"

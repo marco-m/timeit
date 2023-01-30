@@ -1,0 +1,13 @@
+#
+# unexpected argument is an error
+#
+! exec pytestsim x
+stdout 'Usage: pytestsim'
+stderr 'pytestsim: error: unexpected argument x'
+
+#
+# mindur and maxdur
+#
+! exec pytestsim --min-dur=50ms --max-dur=50ms
+stdout 'pytestsim: --mindur must be less than --maxdur'
+! stderr .

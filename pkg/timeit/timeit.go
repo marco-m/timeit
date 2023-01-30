@@ -9,7 +9,11 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sort"
+	"strings"
+	"sync"
 	"syscall"
+	"text/tabwriter"
 	"time"
 
 	"github.com/alecthomas/kong"
@@ -29,16 +33,10 @@ type config struct {
 	CheckVersion   bool          `help:"Check online if new version is available and exit."`
 	NoColor        bool          `help:"Disable color output."`
 	TickerDuration time.Duration `name:"ticker" placeholder:"DURATION" help:"Print a status line each DURATION."`
-	Summarize      string        `placeholder:"PAT" help:"each ticker, summarize the in-flight operations of PAT (currently supports only pytest)."`
+	Observe        string        `placeholder:"FORMAT" help:"observe the output according to FORMAT and print a summary on each ticker. Supported formats: pytest."`
 
 	// Command must be optional to support --version
 	Command []string `arg:"" optional:"" passthrough:"" help:"Command to time."`
-}
-
-type Status struct {
-	msg     string
-	elapsed time.Duration
-	code    int
 }
 
 type printFn func(format string, a ...any)
@@ -74,6 +72,19 @@ func Main() int {
 		return 1
 	}
 
+	if cfg.Observe != "" {
+		if cfg.Observe != "pytest" {
+			fmt.Fprintf(os.Stderr,
+				"timeit: unknown --observe=%s; must be pytest\n", cfg.Observe)
+			return 1
+		}
+	}
+	if cfg.Observe != "" && cfg.TickerDuration == 0 {
+		fmt.Fprintf(os.Stderr,
+			"timeit: --observe requires --ticker\n")
+		return 1
+	}
+
 	if !isatty.IsTerminal(os.Stderr.Fd()) || cfg.NoColor {
 		color.NoColor = true
 	}
@@ -89,15 +100,7 @@ func Main() int {
 		chroma.Fprintf(os.Stderr, format, a...)
 	}
 
-	status := run(cmd, args, cfg, out)
-
-	out(`
-timeit results:
-    %s
-    real: %s
-`, status.msg, status.elapsed.Round(time.Millisecond))
-
-	return status.code
+	return run(cmd, args, cfg, out)
 }
 
 func checkVersion() error {
@@ -127,51 +130,115 @@ func checkVersion() error {
 	return nil
 }
 
+type event struct {
+	name     string
+	started  time.Time
+	finished time.Time
+}
+
+type records struct {
+	mu sync.Mutex
+	// Event name -> event data
+	flying map[string]event
+	// Event name -> event data
+	landed map[string]event
+}
+
+func newRecords() *records {
+	return &records{
+		flying: make(map[string]event, 100),
+		landed: make(map[string]event, 100),
+	}
+}
+
 // Run executable (name, args) and wait for it to terminate.
 // Write our output to `out`, while the command output goes to stdout and stderr as usual.
-// Return the Status of the terminated executable.
-func run(name string, args []string, cfg config, out printFn) Status {
+// Return the status code of the terminated executable.
+func run(name string, args []string, cfg config, out printFn) int {
+	dur100 := cfg.TickerDuration / 100
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return Status{
-			msg:     fmt.Sprintf("getting pipe for command stdout: %s", err),
-			elapsed: 0,
-			code:    1,
-		}
+		var elapsed time.Duration = 0
+		out(results(fmt.Sprintf("getting pipe for command stdout: %s", err), elapsed, dur100, nil))
+		return 1
 	}
-
-	setupProcessOutput(cfg.Summarize, stdout, out)
 
 	t0 := time.Now()
 	if err := cmd.Start(); err != nil {
-		return Status{
-			msg:     fmt.Sprintf("starting command: %s", err),
-			elapsed: time.Since(t0),
-			code:    1,
-		}
+		elapsed := time.Since(t0)
+		out(results(fmt.Sprintf("starting command: %s", err), elapsed, dur100, nil))
+		return 1
 	}
 
 	//
 	// Here we are in the parent, after having started the child.
 	//
 
+	records := newRecords()
+	setupProcessOutput(cfg.Observe, records, stdout, out)
+
 	setupSignalHandling(out)
 
-	cancelTicker := setupPeriodicTicker(t0, cfg.TickerDuration, out)
+	cancelTicker := setupPeriodicTicker(t0, cfg.TickerDuration, cfg.Observe != "", records, out)
 
+	// When using pipes, cmd.Wait() must be called _after_ the pipe is drained.
+	// See https://pkg.go.dev/os/exec#Cmd.StdoutPipe
+	// <-done FIXME
 	waitErr := cmd.Wait()
 	elapsed := time.Since(t0)
 	cancelTicker()
 
-	return extractStatus(cmd.ProcessState, elapsed, waitErr)
+	msg, code := extractStatus(cmd.ProcessState, waitErr)
+	out("%s", results(msg, elapsed, dur100, records))
+	return code
 }
 
-func setupProcessOutput(summarize string, stdout io.Reader, out printFn) {
-	// stdout copier if no --summarize flag
-	if summarize == "" {
+func results(msg string, elapsed time.Duration, precision time.Duration, records *records) string {
+	var bld strings.Builder
+
+	fmt.Fprintf(&bld, `
+timeit results:
+    %s
+    real: %s
+`, msg, elapsed.Round(time.Millisecond))
+
+	if records != nil {
+		fmt.Fprintf(&bld, "    flights by duration:\n")
+		tw := tabwriter.NewWriter(&bld, 5, 0, 2, ' ', 0)
+		landed := make([]event, 0, len(records.landed))
+
+		// From map to slice, so that we can sort by duration.
+		for _, evt := range records.landed {
+			landed = append(landed, evt)
+		}
+
+		sort.Slice(landed, func(i, j int) bool {
+			elapsedI := landed[i].finished.Sub(landed[i].started)
+			elapsedJ := landed[j].finished.Sub(landed[j].started)
+			return elapsedI > elapsedJ
+		})
+		for i, evt := range landed {
+			elapsed := evt.finished.Sub(evt.started).Truncate(precision)
+			fmt.Fprintf(tw, "    %4d\t%s\t%8v\n", i+1, evt.name, elapsed)
+		}
+		tw.Flush()
+	}
+
+	return bld.String()
+}
+
+// FIXME done channel !!! ALL methods...
+// FIXME add also documentation...
+func setupProcessOutput(observe string, events *records, stdout io.Reader, out printFn) {
+	switch observe {
+	case "pytest":
+		go observePytest(events, stdout, out)
+
+	// Simple stdout copier if --observe flag is missing or unknown.
+	default:
 		go func() {
 			if _, err := io.Copy(os.Stdout, stdout); err != nil {
 				// FIXME Report to the errors channel and be printed at the end.
@@ -198,21 +265,52 @@ func setupSignalHandling(out printFn) {
 	}()
 }
 
-func setupPeriodicTicker(t0 time.Time, dur time.Duration, out printFn) func() {
+func setupPeriodicTicker(t0 time.Time, dur time.Duration, summarize bool, records *records, out printFn) func() {
 	if dur == 0 {
 		return func() {}
 	}
 
 	done := make(chan struct{})
 	ticker := time.NewTicker(dur)
+	dur100 := dur / 100
+	var bld strings.Builder
+	tw := tabwriter.NewWriter(&bld, 5, 0, 2, ' ', 0)
+	flying := make([]event, 0, 100)
+
 	go func() {
 		for {
 			select {
+
 			case <-done:
 				ticker.Stop()
 				return
+
 			case now := <-ticker.C:
-				out("\ntimeit ticker: running for %s\n", now.Sub(t0).Truncate(dur))
+				fmt.Fprintf(&bld, "\ntimeit ticker: running for %s\n",
+					now.Sub(t0).Truncate(dur))
+				if summarize {
+					fmt.Fprintf(&bld, "in-flight:\n")
+
+					records.mu.Lock()
+					// From map to slice, so that we can sort by duration.
+					for _, evt := range records.flying {
+						flying = append(flying, evt)
+					}
+					records.mu.Unlock()
+
+					sort.Slice(flying, func(i, j int) bool {
+						return flying[i].started.Before(flying[j].started)
+					})
+					for i, evt := range flying {
+						elapsed := now.Sub(evt.started).Truncate(dur100)
+						fmt.Fprintf(tw, "    %4d\t%s\t%6v\n", i+1, evt.name, elapsed)
+					}
+					tw.Flush()
+				}
+				out("%s\n", bld.String())
+				bld.Reset()
+				// reset, keep allocated memory
+				flying = flying[:0]
 			}
 		}
 	}()
@@ -222,28 +320,17 @@ func setupPeriodicTicker(t0 time.Time, dur time.Duration, out printFn) func() {
 	}
 }
 
-func extractStatus(procState *os.ProcessState, elapsed time.Duration, waitErr error) Status {
+func extractStatus(procState *os.ProcessState, waitErr error) (string, int) {
 	code := procState.ExitCode()
 	switch code {
 	case 0: // Success.
-		return Status{
-			msg:     "command succeeded",
-			elapsed: elapsed,
-			code:    code,
-		}
+		return "command succeeded", code
 	case -1: // Process was terminated by a signal.
+		// Follow the shell convention, https://en.wikipedia.org/wiki/Exit_status
 		status := procState.Sys().(syscall.WaitStatus)
-		return Status{
-			msg:     fmt.Sprintf("command terminated abnormally: %s", waitErr),
-			elapsed: elapsed,
-			// Follow the shell convention, https://en.wikipedia.org/wiki/Exit_status
-			code: 128 + int(status.Signal()),
-		}
+		code := 128 + int(status.Signal())
+		return fmt.Sprintf("command terminated abnormally: %s", waitErr), code
 	default: // Failure.
-		return Status{
-			msg:     fmt.Sprintf("command failed: %s", waitErr),
-			elapsed: elapsed,
-			code:    code,
-		}
+		return fmt.Sprintf("command failed: %s", waitErr), code
 	}
 }

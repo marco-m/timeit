@@ -1,0 +1,16 @@
+#
+# observe pytest
+#
+exec timeit --ticker=50ms --observe=pytest pytestsim --min-dur=60ms --max-dur=70ms --seed=1
+stdout '^test_fruits.py::test_apple\n'
+stdout '^test_fruits.py::test_banana\n'
+stdout '^test_fruits.py::test_coconut\n'
+stdout '^\[gw\d+] \[\d+%] PASSED test_fruits.py::test_banana\n'
+stdout '^\[gw\d+] \[\d+%] PASSED test_fruits.py::test_apple\n'
+stdout '^\[gw\d+] \[\d+%] PASSED test_fruits.py::test_coconut\n'
+stdout '^pytestsim finished\n'
+stderr '^timeit ticker: running for \d+'
+stderr '^in-flight:\n'
+stderr '^timeit results:\n'
+stderr '^    command succeeded\n'
+stderr '^    real: \d+ms'

@@ -1,0 +1,16 @@
+#
+# simple run with fixed seed
+#
+exec pytestsim --seed=1 --min-dur=0ms --max-dur=1ms
+! stderr .
+stdout 'cfg: {NumWorkers:8 Seed:1 MinDur:0s MaxDur:1ms}'
+stdout 'some more output that is not a test name'
+stdout 'test_fruits.py::test_apple\n'
+stdout 'test_fruits.py::test_banana\n'
+stdout 'test_fruits.py::test_coconut\n'
+stdout 'test_fruits.py::test_grape\n'
+stdout '\[gw\d+] \[\d+%] PASSED test_fruits\.py::test_grape'
+stdout '\[gw\d+] \[\d+%] PASSED test_fruits\.py::test_banana'
+stdout '\[gw\d+] \[\d+%] PASSED test_fruits\.py::test_coconut'
+stdout '\[gw\d+] \[\d+%] PASSED test_fruits\.py::test_apple'
+stdout 'pytestsim finished'
