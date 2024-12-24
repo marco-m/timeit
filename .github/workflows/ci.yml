@@ -7,14 +7,14 @@ jobs:
   all:
     strategy:
       matrix:
-        go-version: [1.19.x]
-        os: [ubuntu-22.04, macos-12, windows-2022]
-        task-version: [v3.20.0]
-        gotestsum-version: [v1.9.0]
+        go-version: ['1.23.x']
+        os: [ubuntu-24.04, macos-14, windows-2022]
+        task-version: [v3.40.1]
+        gotestsum-version: [v1.12.0]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Install Go ${{ matrix.go-version }}
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
     - name: Install task ${{ matrix.task-version }}
@@ -22,7 +22,7 @@ jobs:
     - name: Install gotestsum ${{ matrix.gotestsum-version }}
       run: go install gotest.tools/gotestsum@${{ matrix.gotestsum-version }}
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         # By default, actions/checkout will persist the GITHUB_TOKEN, so that further
         # steps in the job can perform authenticated git commands (that is: WRITE to
@@ -31,9 +31,9 @@ jobs:
         persist-credentials: false
         # Number of commits to fetch. Default: 1
         # We need to fetch more to find the latest tag, to create the version string.
-        # Bug? If we pass a non-zero value, it uses `git fetch --no-tags`, so we are
-        # forced to clone the whole history, by passing `0`.
-        fetch-depth: 0
+        fetch-depth: 10
+        # Whether to fetch tags, even if fetch-depth > 0.
+        fetch-tags: true
     - name: Build
       run: task build
     - name: Test
