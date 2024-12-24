@@ -27,7 +27,7 @@ func TestSignalSentToProcessGroup(t *testing.T) {
 	assert.NilError(t, cmd2.Run())
 
 	var out bytes.Buffer
-	sut := exec.Command(timeit, "--", sleepit, "handle", "--sleep=2s", "--cleanup=10ms")
+	sut := exec.Command(timeit, sleepit, "handle", "--sleep=2s", "--cleanup=10ms")
 	sut.Stdout = &out
 	sut.Stderr = &out
 
