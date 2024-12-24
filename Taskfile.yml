@@ -4,9 +4,9 @@ version: '3'
 
 vars:
   FULL_VERSION:
-    sh: git describe --long --dirty --always
+    sh: git describe --tags --long --dirty --always
   SHORT_VERSION:
-    sh: git describe --abbrev=0 --always
+    sh: git describe --tags --abbrev=0 --always
   LDFLAGS: >
     -w -s
     -X github.com/marco-m/timeit/pkg/timeit.fullVersion={{.FULL_VERSION}}
@@ -62,6 +62,7 @@ tasks:
   test:version:
     deps: [timeit]
     cmds:
+      - './bin/timeit --version'
       - './bin/timeit --version | grep "  version: v0\."'
 
   #

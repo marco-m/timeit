@@ -13,7 +13,7 @@ stderr '    real: '
 ! exec timeit /non-existing
 ! stdout .
 stderr 'timeit results:'
-stderr '    starting command: .*exec .* (no such file or directory)|(file does not exist)'
+stderr '    starting command: .*exec .* (no such file or directory)|(file does not exist)|(executable file not found)'
 
 #
 # child status 0 is forwarded
