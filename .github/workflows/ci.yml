@@ -31,7 +31,8 @@ jobs:
         persist-credentials: false
         # Number of commits to fetch. Default: 1
         # We need to fetch more to find the latest tag, to create the version string.
-        fetch-depth: 10
+        # In addition, "git describe" needs also "--tags", to let it find unannotated tags :-/
+        fetch-depth: 20
         # Whether to fetch tags, even if fetch-depth > 0.
         fetch-tags: true
     - name: Build
