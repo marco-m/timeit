@@ -2,8 +2,8 @@
 # missing command is an error
 #
 ! exec sleepit
-stdout 'Usage: sleepit <command>'
-stderr 'sleepit: error: expected one of "default",  "handle"'
+stdout 'Usage: sleepit <command> \[flags\]'
+stderr 'sleepit: error: expected one of "default", "handle"'
 
 #
 # term-after cannot be 1
