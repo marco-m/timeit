@@ -13,14 +13,18 @@ jobs:
         gotestsum-version: [v1.12.0]
     runs-on: ${{ matrix.os }}
     steps:
+
     - name: Install Go ${{ matrix.go-version }}
       uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
+
     - name: Install task ${{ matrix.task-version }}
       run: go install github.com/go-task/task/v3/cmd/task@${{ matrix.task-version }}
+
     - name: Install gotestsum ${{ matrix.gotestsum-version }}
       run: go install gotest.tools/gotestsum@${{ matrix.gotestsum-version }}
+
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -35,7 +39,9 @@ jobs:
         fetch-depth: 20
         # Whether to fetch tags, even if fetch-depth > 0.
         fetch-tags: true
+
     - name: Build
       run: task build
+
     - name: Test
       run: task test
