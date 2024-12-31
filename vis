@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# This approach takes ca 750ms
+#exec go run ./vires "$@"
+
+# This approach takes ca 300ms
+go build -o .vis ./vires && exec ./.vis "$@"

@@ -1,29 +1,25 @@
 # based on https://github.com/mvdan/github-actions-golang
 # on: [push, pull_request]
 
-on: [push]
 name: ci
+on: push
+env:
+  go-version: '1.23.x'
+defaults:
+  run:
+    shell: sh
 jobs:
   all:
     strategy:
       matrix:
-        go-version: ['1.23.x']
         os: [ubuntu-24.04, macos-14, windows-2022]
-        task-version: [v3.40.1]
-        gotestsum-version: [v1.12.0]
     runs-on: ${{ matrix.os }}
     steps:
 
-    - name: Install Go ${{ matrix.go-version }}
+    - name: Install Go ${{ env.go-version }}
       uses: actions/setup-go@v5
       with:
-        go-version: ${{ matrix.go-version }}
-
-    - name: Install task ${{ matrix.task-version }}
-      run: go install github.com/go-task/task/v3/cmd/task@${{ matrix.task-version }}
-
-    - name: Install gotestsum ${{ matrix.gotestsum-version }}
-      run: go install gotest.tools/gotestsum@${{ matrix.gotestsum-version }}
+        go-version: ${{ env.go-version }}
 
     - name: Checkout code
       uses: actions/checkout@v4
@@ -41,7 +37,7 @@ jobs:
         fetch-tags: true
 
     - name: Build
-      run: task build
+      run: ./vis build
 
     - name: Test
-      run: task test
+      run: ./vis test --cover

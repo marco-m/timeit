@@ -24,7 +24,7 @@ import (
 
 var (
 	// Filled by the linker.
-	fullVersion  = "unknown" // example: v0.0.9-8-g941583d027-dirty
+	longVersion  = "unknown" // example: v0.0.9-8-g941583d027-dirty
 	shortVersion = "unknown" // example: v0.0.9
 )
 
@@ -55,7 +55,7 @@ func Main() int {
 	if cfg.Version {
 		fmt.Println("timeit:")
 		fmt.Printf("  version: %s\n  home:    https://github.com/marco-m/timeit\n",
-			fullVersion)
+			longVersion)
 		return 0
 	}
 
