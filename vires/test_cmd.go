@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/marco-m/clim"
 	"github.com/marco-m/vis"
@@ -49,9 +48,6 @@ func (cmd *testCmd) Run(app App) error {
 	const coverfile = "out/cover.out"
 	if cmd.Browser && !cmd.Cover {
 		return clim.NewParseError("--browser requires --cover")
-	}
-	if err := os.Mkdir("out", 0o755); err != nil {
-		return err
 	}
 
 	var args []string
