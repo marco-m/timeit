@@ -5,6 +5,7 @@
 The `timeit` utility measures the time of command execution.
 
 It has the following features:
+
 - Color output.
 - Human friendly output (for example: `1h32m43s` instead of `5563.00`), inspired by the FreeBSD `/usr/bin/time`.
 - Periodic ticker.
@@ -18,7 +19,6 @@ Time a command, with or without options:
         command succeeded
         real: 1m1.008s
 
-
 Time a shell construct: you have to time the execution of a subshell, for
 example:
 
@@ -30,7 +30,6 @@ example:
         command succeeded
         real: 3.035s
 
-
 Time a command and print intermediate timings (color output by default):
 
     $ timeit --ticker 30s sleep 60
@@ -39,7 +38,6 @@ Time a command and print intermediate timings (color output by default):
     timeit results:
         command succeeded
         real: 1m0.005s
-
 
 The termination status of the command is always clearly reported:
 
@@ -53,7 +51,6 @@ The termination status of the command is always clearly reported:
     timeit results:
         command terminated abnormally: signal: interrupt
         real: 1.851s
-
 
 Time a command, observe its output and summarize in-flight operations (example: pytest --verbose):
 
@@ -70,18 +67,17 @@ Time a command, observe its output and summarize in-flight operations (example: 
         test_fruits.py::test_appple    50s
         test_fruits.py::test_banana    48s
         test_herbs.py::test_coriander   3s
-    ...    
+    ...
     finished:                                 <== optional, only if verbose
         test_fruits.py::test_banana    1h3m
         test_herbs.py::test_basil        3s
-    ...    
+    ...
     timeit results:
         command succeeded
         real: 2h34m21s
         slowest flights:
             test_fruits.py::test_banana      1h3m
             test_herbs.py::test_coriander   48m3s
-
 
 Check online if there is a more recent version:
 
@@ -120,14 +116,18 @@ quarantine, since it is not signed nor notarized. There are two options:
    $ xattr -d com.apple.quarantine timeit
    ```
 
-## Install from source
+## Using the source
 
-1. Install [Task](https://taskfile.dev/).
-2. Run it: `task`.
+### Getting familiar with the build tool
 
-Then, copy the executable to a directory in your `$PATH`.
+    ./vis -h
 
-## Making a release
+### Installing from source
+
+1. Run: `./vis build`.
+2. Copy the `timeit` executable to a directory in your `$PATH`.
+
+### Making a release
 
     $ env RELEASE_TAG=v0.1.0 summon task release
 
@@ -137,7 +137,7 @@ This code is released under the MIT license, see file [LICENSE](LICENSE).
 
 ## Credits
 
-* FreeBSD `/usr/bin/time` ([man page], [C source]).
+- FreeBSD `/usr/bin/time` ([man page], [C source]).
 
 [man page]: https://www.freebsd.org/cgi/man.cgi?query=time
 [C source]: https://github.com/freebsd/freebsd/blob/master/usr.bin/time/time.c

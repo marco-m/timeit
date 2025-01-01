@@ -5,7 +5,7 @@ package pytestsim
 
 import (
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"sync"
 	"time"
 
@@ -54,7 +54,6 @@ func run() error {
 	fmt.Printf("cfg: %+v\n", cfg)
 	fmt.Printf("some more output that is not a test name\n")
 
-	rand.Seed(cfg.Seed)
 	names := names()
 	numJobs := len(names)
 	jobsCh := make(chan string, 2*cfg.NumWorkers)
@@ -106,11 +105,15 @@ func run() error {
 
 // worker simulator.
 func worker(cfg config, workerId int, jobsCh <-chan string, outputCh chan<- msg) {
+	// A rand.Source (and so a rand.Rand) is not safe for concurrent use, this
+	// is why we have one per goroutine.
+	seed := uint64(cfg.Seed) + uint64(workerId)
+	rnd := rand.New(rand.NewPCG(seed, seed+100))
 	for name := range jobsCh {
 		msg := msg{workerId: workerId, name: name}
 		outputCh <- msg
 
-		jitter := rand.Int63n(int64(cfg.MaxDur - cfg.MinDur))
+		jitter := rnd.Int64N(int64(cfg.MaxDur - cfg.MinDur))
 		sleep := cfg.MinDur + time.Duration(jitter)
 		time.Sleep(sleep)
 
